@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Straddle Royale</title>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-dark: #1a1a2e;
+            --sidebar-bg: #16213e;
+            --highlight: #e94560;
+            --accent: #f1c40f;
+            --text-main: #ffffff;
+        }
+
+        * { box-sizing: border-box; user-select: none; }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Roboto', sans-serif;
+            overflow: hidden;
+            display: flex;
+        }
+
+        /* --- SIDEBAR --- */
+        #sidebar {
+            width: 350px;
+            background: var(--sidebar-bg);
+            border-right: 2px solid #000;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            z-index: 10;
+            box-shadow: 5px 0 15px rgba(0,0,0,0.3);
+        }
+
+        .logo {
+            font-family: 'Anton', sans-serif;
+            font-size: 42px;
+            color: var(--highlight);
+            text-transform: uppercase;
+            line-height: 1;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .code-box {
+            background: #000;
+            border: 2px dashed var(--accent);
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+        .code-label { color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+        .code-value { 
+            font-family: 'Anton', sans-serif; 
+            font-size: 48px; 
+            color: var(--accent); 
+            letter-spacing: 3px; 
+            line-height: 1;
+            margin-top: 5px;
+        }
+
+        #player-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Player Card */
+        .player-card {
+            background: #252f4e;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 2px solid transparent;
+            transition: 0.2s;
+            position: relative;
+        }
+
+        /* Interaction States */
+        .player-card.clickable:hover { 
+            cursor: pointer; 
+            background: #3a4b7c; 
+            transform: translateX(5px);
+            border-color: white;
+        }
+        
+        .player-card.active-turn { 
+            border-color: #2ecc71; 
+            background: #1e3a2a;
+        }
+        
+        .player-card.selected-target {
+            background: #5c1818 !important;
+            border-color: var(--highlight) !important;
+        }
+
+        .player-card.dead { opacity: 0.4; filter: grayscale(1); pointer-events: none; }
+
+        .card-avatar {
+            width: 50px; height: 50px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #000;
+            border: 2px solid #000;
+        }
+
+        .card-info { flex-grow: 1; }
+        .card-name { font-weight: 700; font-size: 1.2rem; display: block; }
+        
+        .hp-container { display: flex; gap: 5px; margin-top: 5px; }
+        .hp-dot { width: 12px; height: 12px; background: #333; border-radius: 50%; border: 1px solid #000; }
+        .hp-dot.active { background: #2ecc71; box-shadow: 0 0 5px #2ecc71; }
+
+        /* --- ARENA --- */
+        #arena {
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at center, #232342 0%, #1a1a2e 70%);
+        }
+
+        #top-bar {
+            position: absolute;
+            top: 20px;
+            background: rgba(0,0,0,0.6);
+            padding: 10px 30px;
+            border-radius: 30px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: white;
+            border: 1px solid #444;
+            z-index: 20;
+        }
+
+        .arena-player {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 120px;
+            transition: transform 0.5s ease-out;
+            left: 50%; 
+            top: 50%;
+            margin-left: -60px; 
+            margin-top: -60px; 
+        }
+
+        .arena-avatar {
+            width: 100px; height: 100px;
+            border-radius: 50%;
+            border: 4px solid #333;
+            object-fit: cover;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            background: #000;
+            transition: 0.2s;
+        }
+
+        /* Hover effect for arena avatars when clickable */
+        .arena-player.clickable:hover .arena-avatar {
+            border-color: white;
+            transform: scale(1.05);
+            cursor: pointer;
+        }
+
+        .arena-player.active-turn .arena-avatar {
+            border-color: #2ecc71;
+            box-shadow: 0 0 20px #2ecc71;
+            transform: scale(1.1);
+        }
+
+        .arena-player.selected-target .arena-avatar {
+            border-color: var(--highlight);
+            box-shadow: 0 0 30px var(--highlight);
+            animation: shake 0.5s infinite;
+        }
+        
+        .arena-player.dead { opacity: 0; transition: opacity 1s; pointer-events: none; } 
+
+        .arena-name {
+            margin-top: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+        /* --- BUTTONS --- */
+        #action-area {
+            position: absolute;
+            bottom: 40px;
+            right: 40px;
+            z-index: 20;
+        }
+
+        .btn-action {
+            width: 90px; height: 90px;
+            border-radius: 50%;
+            border: 4px solid white;
+            background: var(--highlight);
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+            transition: 0.2s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .btn-action:hover { transform: scale(1.1) rotate(5deg); background: #ff6b81; }
+        .btn-action:disabled { background: #555; border-color: #777; cursor: not-allowed; opacity: 0; pointer-events: none; }
+
+        /* --- MODALS --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 100;
+        }
+        
+        .modal {
+            background: #fff;
+            color: #000;
+            padding: 40px;
+            border-radius: 4px;
+            text-align: center;
+            width: 400px;
+            box-shadow: 0 0 50px rgba(233, 69, 96, 0.5);
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0 20px 0;
+            border: 2px solid #000;
+            font-size: 1.2rem;
+            text-align: center;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .btn-primary {
+            background: #000;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        .btn-primary:hover { background: var(--highlight); }
+
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        .floater {
+            position: absolute;
+            font-weight: 900;
+            font-size: 40px;
+            animation: floatUp 2s forwards;
+            pointer-events: none;
+            text-shadow: 2px 2px 0 #000;
+            z-index: 50;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-100px); opacity: 0; }
+        }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <div id="sidebar">
+        <div class="logo">STRADDLE<br>ROYALE</div>
+        
+        <div class="code-box">
+            <div class="code-label">ROOM CODE</div>
+            <div class="code-value" id="room-code-display">----</div>
+        </div>
+
+        <div id="player-list"></div>
+    </div>
+
+    <!-- ARENA -->
+    <div id="arena">
+        <div id="top-bar">WAITING FOR PLAYERS...</div>
+        <div id="arena-layer"></div> 
+        
+        <div id="action-area">
+            <button id="btn-action" class="btn-action" disabled onclick="handleConfirmClick()">✓</button>
+        </div>
+    </div>
+
+    <!-- SETUP MODALS -->
+    <div id="setup-modal" class="modal-overlay">
+        <div class="modal">
+            <h1 style="margin:0 0 20px 0; font-family:'Anton', sans-serif; font-size:40px;">WELCOME</h1>
+            
+            <label style="font-weight:bold; display:block; text-align:left;">YOUR NAME</label>
+            <input type="text" id="inp-name" placeholder="NAME" maxlength="10">
+
+            <label style="font-weight:bold; display:block; text-align:left;">AVATAR URL (Optional)</label>
+            <input type="text" id="inp-avatar" placeholder="https://..." style="font-size:1rem; font-weight:normal;">
+
+            <button class="btn-primary" onclick="initGame('HOST')">CREATE ROOM</button>
+            <button class="btn-primary" style="background:#555" onclick="showJoin()">JOIN ROOM</button>
+        </div>
+    </div>
+
+    <div id="join-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <h1>JOIN GAME</h1>
+            <label style="font-weight:bold;">ENTER ROOM CODE</label>
+            <input type="text" id="inp-code" placeholder="ABCD">
+            <button class="btn-primary" onclick="initGame('JOIN')">CONNECT</button>
+            <button class="btn-primary" style="background:#ccc; color:black" onclick="location.reload()">CANCEL</button>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIG ---
+        const BROKER = 'wss://broker.emqx.io:8084/mqtt';
+        const TOPIC_BASE = 'straddle-final-v6/';
+
+        // --- STATE ---
+        let client;
+        let myId = Math.random().toString(36).substr(2, 8);
+        let myName = "Player";
+        let myAvatar = "";
+        let roomCode = "";
+        let isHost = false;
+
+        let players = [];
+        let turnIndex = 0;
+        let phase = "LOBBY"; // LOBBY, IDLE, TARGETING, ROLLING, GAMEOVER
+        let selectedTargetId = null;
+
+        // --- SETUP ---
+        function showJoin() {
+            document.getElementById('setup-modal').classList.add('hidden');
+            document.getElementById('join-modal').classList.remove('hidden');
+        }
+
+        function initGame(mode) {
+            myName = document.getElementById('inp-name').value.trim() || "Warrior";
+            // Default Avatar Generator
+            myAvatar = document.getElementById('inp-avatar').value.trim() || `https://api.dicebear.com/9.x/dylan/svg?seed=${myId}`;
+
+            if (mode === 'HOST') {
+                isHost = true;
+                roomCode = Math.random().toString(36).substr(2, 4).toUpperCase();
+                players = [{
+                    id: myId, name: myName, avatar: myAvatar, 
+                    hp: 3, dead: false
+                }];
+            } else {
+                roomCode = document.getElementById('inp-code').value.trim().toUpperCase();
+                if (roomCode.length < 4) return alert("Invalid Code");
+            }
+
+            document.getElementById('setup-modal').classList.add('hidden');
+            document.getElementById('join-modal').classList.add('hidden');
+            document.getElementById('room-code-display').innerText = roomCode;
+
+            connectMQTT();
+        }
+
+        // --- NETWORKING ---
+        function connectMQTT() {
+            client = mqtt.connect(BROKER);
+
+            client.on('connect', () => {
+                client.subscribe(TOPIC_BASE + roomCode);
+                if (!isHost) send({ type: 'HELLO', name: myName, avatar: myAvatar });
+                updateUI();
+            });
+
+            client.on('message', (topic, msg) => {
+                try {
+                    const data = JSON.parse(msg.toString());
+                    if (data.senderId === myId) return;
+                    handleData(data);
+                } catch (e) { console.error(e); }
+            });
+        }
+
+        function send(payload) {
+            if (!client) return;
+            payload.senderId = myId;
+            client.publish(TOPIC_BASE + roomCode, JSON.stringify(payload));
+        }
+
+        function handleData(data) {
+            if (isHost) {
+                if (data.type === 'HELLO') {
+                    if (!players.find(p => p.id === data.id)) {
+                        players.push({
+                            id: data.id, name: data.name, avatar: data.avatar,
+                            hp: 3, dead: false
+                        });
+                        sendState();
+                    } else {
+                        sendState(); // Resync if they rejoin
+                    }
+                } else if (data.type === 'ATTACK_REQ') {
+                    resolveCombat(data.sourceId, data.targetId);
+                }
+            } else {
+                if (data.type === 'STATE') {
+                    players = data.players;
+                    turnIndex = data.turnIndex;
+                    phase = data.phase;
+                    updateUI();
+                }
+                else if (data.type === 'FX') {
+                    showDamage(data.targetId, data.dmg, data.msg);
+                }
+            }
+        }
+
+        function sendState() {
+            send({ type: 'STATE', players, turnIndex, phase });
+            updateUI();
+        }
+
+        // --- LOGIC (HOST & CLIENT) ---
+        function handleConfirmClick() {
+            if (phase === 'LOBBY' && isHost) {
+                if (players.length < 2) return alert("Need 2 players to start.");
+                phase = 'IDLE';
+                sendState();
+            } 
+            else if (phase === 'TARGETING') {
+                // Execute Attack Logic
+                if (isHost) {
+                    resolveCombat(myId, selectedTargetId);
+                } else {
+                    send({ type: 'ATTACK_REQ', sourceId: myId, targetId: selectedTargetId });
+                }
+                
+                // Immediate local feedback
+                selectedTargetId = null;
+                phase = 'ROLLING'; 
+                updateUI();
+            }
+        }
+
+        function resolveCombat(attId, defId) {
+            const att = players.find(p => p.id === attId);
+            const def = players.find(p => p.id === defId);
+            if (!att || !def) return;
+
+            phase = 'ROLLING';
+            sendState();
+
+            // Logic
+            const r1 = Math.floor(Math.random() * 20) + 1;
+            const r2 = Math.floor(Math.random() * 20) + 1;
+            let dmg = 0;
+            let msg = "BLOCKED";
+
+            if (r1 > r2) {
+                def.hp -= 1;
+                dmg = 1;
+                msg = `-${dmg} HP`;
+                if (def.hp <= 0) { def.hp = 0; def.dead = true; msg = "DEAD"; }
+            }
+
+            setTimeout(() => {
+                send({ type: 'FX', targetId: def.id, dmg: dmg, msg: msg });
+                showDamage(def.id, dmg, msg);
+            }, 500);
+
+            setTimeout(() => {
+                const survivors = players.filter(p => !p.dead);
+                if (survivors.length === 1) {
+                    phase = 'GAMEOVER';
+                } else {
+                    let safety = 0;
+                    do {
+                        turnIndex = (turnIndex + 1) % players.length;
+                        safety++;
+                    } while (players[turnIndex].dead && safety < 20);
+                    phase = 'IDLE';
+                }
+                sendState();
+            }, 2500);
+        }
+
+        function selectTarget(id) {
+            // Fix: Allow switching targets if in IDLE or TARGETING
+            if (phase !== 'IDLE' && phase !== 'TARGETING') return;
+            
+            // Validate turn
+            const currentTurnPlayer = players[turnIndex];
+            if (!currentTurnPlayer || currentTurnPlayer.id !== myId) return;
+
+            // Validate target
+            const target = players.find(p => p.id === id);
+            if (!target || target.id === myId || target.dead) return;
+
+            selectedTargetId = id;
+            phase = 'TARGETING'; // State change locally
+            updateUI();
+        }
+
+        // --- UI RENDERER ---
+        function updateUI() {
+            const sidebar = document.getElementById('player-list');
+            const arena = document.getElementById('arena-layer');
+            const topBar = document.getElementById('top-bar');
+            const btn = document.getElementById('btn-action');
+
+            sidebar.innerHTML = '';
+            arena.innerHTML = '';
+
+            const turnPlayer = players[turnIndex] || {};
+
+            // 1. Button Logic
+            if (phase === 'LOBBY') {
+                topBar.innerText = `WAITING FOR PLAYERS (${players.length})`;
+                btn.innerHTML = "▶";
+                btn.disabled = !isHost;
+                btn.style.opacity = isHost ? 1 : 0;
+            }
+            else if (phase === 'GAMEOVER') {
+                const winner = players.find(p => !p.dead);
+                topBar.innerText = `WINNER: ${winner ? winner.name : 'NOBODY'}`;
+                btn.innerHTML = "↺";
+                btn.disabled = false;
+                btn.style.opacity = 1;
+                btn.onclick = () => location.reload();
+            }
+            else if (phase === 'ROLLING') {
+                topBar.innerText = "ROLLING DICE...";
+                btn.disabled = true;
+                btn.style.opacity = 0;
+            }
+            else {
+                // IDLE or TARGETING
+                if (turnPlayer.id === myId) {
+                    if (phase === 'TARGETING') {
+                        topBar.innerText = "CLICK CHECK TO FIRE";
+                        topBar.style.color = "#f1c40f";
+                        btn.innerHTML = "✓";
+                        btn.disabled = false;
+                        btn.style.opacity = 1;
+                    } else {
+                        topBar.innerText = "YOUR TURN - SELECT A TARGET";
+                        topBar.style.color = "#2ecc71";
+                        btn.disabled = true;
+                        btn.style.opacity = 0.3;
+                    }
+                } else {
+                    topBar.innerText = `${turnPlayer.name}'S TURN`;
+                    topBar.style.color = "white";
+                    btn.disabled = true;
+                    btn.style.opacity = 0;
+                }
+            }
+
+            // 2. Render Elements
+            const radius = 250;
+            
+            players.forEach((p, i) => {
+                // --- SIDEBAR ---
+                const card = document.createElement('div');
+                const isMyTurn = (turnPlayer.id === myId && (phase === 'IDLE' || phase === 'TARGETING'));
+                const isTargetable = isMyTurn && !p.dead && p.id !== myId;
+                
+                card.className = `player-card ${p.dead ? 'dead' : ''}`;
+                if (isTargetable) card.classList.add('clickable');
+                if (!p.dead && i === turnIndex) card.classList.add('active-turn');
+                if (selectedTargetId === p.id) card.classList.add('selected-target');
+                
+                card.onclick = () => selectTarget(p.id);
+
+                let dots = '';
+                for(let h=0; h<3; h++) dots += `<div class="hp-dot ${h < p.hp ? 'active' : ''}"></div>`;
+
+                card.innerHTML = `
+                    <img src="${p.avatar}" class="card-avatar">
+                    <div class="card-info">
+                        <span class="card-name">${p.name} ${p.id===myId ? '(YOU)' : ''}</span>
+                        <div class="hp-container">${dots}</div>
+                    </div>
+                `;
+                sidebar.appendChild(card);
+
+                // --- ARENA ---
+                // Circle Math
+                const angle = (i * (360 / players.length)) - 90;
+                const rad = angle * (Math.PI / 180);
+                const x = Math.cos(rad) * radius;
+                const y = Math.sin(rad) * radius;
+
+                const el = document.createElement('div');
+                el.className = `arena-player ${p.dead ? 'dead' : ''}`;
+                if (isTargetable) el.classList.add('clickable');
+                if (!p.dead && i === turnIndex) el.classList.add('active-turn');
+                if (selectedTargetId === p.id) el.classList.add('selected-target');
+                
+                el.style.transform = `translate(${x}px, ${y}px)`;
+                el.id = `avatar-${p.id}`;
+                el.onclick = () => selectTarget(p.id);
+
+                el.innerHTML = `
+                    <img src="${p.avatar}" class="arena-avatar">
+                    <div class="arena-name">${p.name}</div>
+                `;
+                arena.appendChild(el);
+            });
+        }
+
+        function showDamage(id, dmg, text) {
+            const el = document.getElementById(`avatar-${id}`);
+            if (!el) return;
+
+            const float = document.createElement('div');
+            float.className = 'floater';
+            float.innerText = text;
+            float.style.color = dmg > 0 ? '#e94560' : '#fff';
+            
+            el.appendChild(float);
+            setTimeout(() => float.remove(), 2000);
+        }
+
+        window.addEventListener('resize', updateUI);
+
+    </script>
+</body>
+</html>
