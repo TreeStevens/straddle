@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Straddle Royale</title>
+    <title>Straddle Royale v1</title>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Anton&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     
@@ -30,37 +30,42 @@
 
         /* --- SIDEBAR --- */
         #sidebar {
-            width: 300px;
+            width: 350px;
             background: var(--sidebar-bg);
             border-right: 2px solid #000;
             display: flex;
             flex-direction: column;
             padding: 20px;
-            z-index: 50; /* High Z-index */
+            z-index: 10;
             box-shadow: 5px 0 15px rgba(0,0,0,0.3);
         }
 
         .logo {
             font-family: 'Anton', sans-serif;
-            font-size: 36px;
+            font-size: 42px;
             color: var(--highlight);
+            text-transform: uppercase;
             line-height: 1;
             margin-bottom: 20px;
+            text-shadow: 2px 2px 0 #000;
         }
 
         .code-box {
             background: #000;
             border: 2px dashed var(--accent);
-            padding: 10px;
+            padding: 15px;
             text-align: center;
             margin-bottom: 20px;
             border-radius: 8px;
         }
+        .code-label { color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
         .code-value { 
             font-family: 'Anton', sans-serif; 
-            font-size: 40px; 
+            font-size: 48px; 
             color: var(--accent); 
-            letter-spacing: 2px; 
+            letter-spacing: 3px; 
+            line-height: 1;
+            margin-top: 5px;
         }
 
         #player-list {
@@ -71,88 +76,109 @@
             gap: 10px;
         }
 
+        /* Player Card */
         .player-card {
             background: #252f4e;
             border-radius: 8px;
             padding: 10px;
             display: flex;
             align-items: center;
-            gap: 10px;
-            border: 2px solid transparent;
-            cursor: pointer; /* Always show hand cursor */
+            gap: 12px;
+            border: 3px solid transparent;
+            transition: 0.1s;
+            position: relative;
         }
-        
-        .player-card:hover { background: #3a4b7c; }
-        .player-card.active-turn { border-color: #2ecc71; background: #1e3a2a; }
-        .player-card.selected { background: #5c1818; border-color: var(--highlight); }
-        .player-card.dead { opacity: 0.4; filter: grayscale(1); }
 
-        .card-avatar { width: 40px; height: 40px; border-radius: 4px; background: #000; }
-        .hp-dot { width: 10px; height: 10px; background: #333; border-radius: 50%; display: inline-block; margin-right: 2px; }
-        .hp-dot.active { background: #2ecc71; }
+        .player-card.clickable { cursor: pointer; }
+        .player-card.clickable:hover { background: #3a4b7c; border-color: rgba(255,255,255,0.5); }
+        
+        .player-card.active-turn { border-color: #2ecc71; background: #1e3a2a; }
+        .player-card.selected { background: #5c1818 !important; border-color: var(--highlight) !important; }
+        .player-card.dead { opacity: 0.4; filter: grayscale(1); pointer-events: none; }
+
+        .card-avatar {
+            width: 50px; height: 50px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #000;
+            border: 2px solid #000;
+            pointer-events: none;
+        }
+
+        .card-info { flex-grow: 1; pointer-events: none; }
+        .card-name { font-weight: 700; font-size: 1.2rem; display: block; }
+        
+        .hp-container { display: flex; gap: 5px; margin-top: 5px; }
+        .hp-dot { width: 12px; height: 12px; background: #333; border-radius: 50%; border: 1px solid #000; }
+        .hp-dot.active { background: #2ecc71; box-shadow: 0 0 5px #2ecc71; }
 
         /* --- ARENA --- */
         #arena {
             flex-grow: 1;
             position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             background: radial-gradient(circle at center, #232342 0%, #1a1a2e 70%);
         }
 
         #top-bar {
             position: absolute;
-            top: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.8);
+            top: 20px;
+            background: rgba(0,0,0,0.6);
             padding: 10px 30px;
             border-radius: 30px;
             font-weight: bold;
             font-size: 1.2rem;
             color: white;
             border: 1px solid #444;
-            z-index: 10;
-            white-space: nowrap;
+            z-index: 20;
         }
 
-        /* PLAYER AVATARS - High Z-Index to catch clicks */
         .arena-player {
             position: absolute;
             display: flex;
             flex-direction: column;
             align-items: center;
             width: 120px;
-            height: 140px;
-            z-index: 100; /* Above background */
-            transition: all 0.5s ease-out;
-            cursor: pointer;
+            transition: transform 0.5s ease-out;
+            left: 50%; top: 50%;
+            margin-left: -60px; margin-top: -60px; 
         }
 
         .arena-avatar {
             width: 100px; height: 100px;
             border-radius: 50%;
             border: 4px solid #333;
+            object-fit: cover;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
             background: #000;
             transition: 0.2s;
+            pointer-events: none;
         }
 
-        .arena-player:hover .arena-avatar { transform: scale(1.1); border-color: white; }
-        .arena-player.active-turn .arena-avatar { border-color: #2ecc71; box-shadow: 0 0 20px #2ecc71; }
-        .arena-player.selected .arena-avatar { border-color: var(--highlight); box-shadow: 0 0 30px var(--highlight); }
-        .arena-player.dead { opacity: 0; pointer-events: none; }
+        .arena-player.clickable:hover .arena-avatar {
+            border-color: white;
+            transform: scale(1.05);
+            cursor: pointer;
+        }
+
+        .arena-player.active-turn .arena-avatar { border-color: #2ecc71; box-shadow: 0 0 20px #2ecc71; transform: scale(1.1); }
+        .arena-player.selected .arena-avatar { border-color: var(--highlight); box-shadow: 0 0 30px var(--highlight); animation: shake 0.5s infinite; }
+        .arena-player.dead { opacity: 0; transition: opacity 1s; pointer-events: none; } 
 
         .arena-name {
+            margin-top: 10px;
             background: rgba(0,0,0,0.8);
-            padding: 4px 8px;
+            padding: 5px 10px;
             border-radius: 4px;
-            margin-top: 5px;
             font-weight: bold;
+            text-shadow: 1px 1px 0 #000;
+            pointer-events: none;
         }
 
-        /* --- ACTION BUTTON --- */
-        #action-area {
-            position: absolute;
-            bottom: 40px;
-            right: 40px;
-            z-index: 200; /* Above players */
-        }
+        /* --- BUTTONS --- */
+        #action-area { position: absolute; bottom: 40px; right: 40px; z-index: 20; }
 
         .btn-action {
             width: 90px; height: 90px;
@@ -164,15 +190,11 @@
             font-weight: bold;
             cursor: pointer;
             box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+            transition: 0.2s;
+            display: flex; align-items: center; justify-content: center;
         }
-        .btn-action:disabled { background: #555; opacity: 0.3; cursor: not-allowed; }
-
-        /* --- DEBUGGER --- */
-        #debug-msg {
-            position: absolute; bottom: 10px; left: 360px;
-            color: #f1c40f; font-family: monospace; font-size: 14px;
-            z-index: 999; text-shadow: 1px 1px 0 #000;
-        }
+        .btn-action:hover { transform: scale(1.1) rotate(5deg); background: #ff6b81; }
+        .btn-action:disabled { background: #555; border-color: #777; cursor: not-allowed; opacity: 0; pointer-events: none; }
 
         /* --- MODALS --- */
         .modal-overlay {
@@ -181,43 +203,82 @@
             display: flex; justify-content: center; align-items: center;
             z-index: 1000;
         }
+        
         .modal {
-            background: #fff; color: #000; padding: 30px; border-radius: 8px;
-            width: 350px; text-align: center;
+            background: #fff; color: #000; padding: 40px; border-radius: 4px;
+            text-align: center; width: 400px; box-shadow: 0 0 50px rgba(233, 69, 96, 0.5);
         }
-        input { width: 100%; padding: 10px; margin: 10px 0; font-size: 1.1rem; text-align: center; }
-        .btn-main { width: 100%; padding: 15px; background: #000; color: #fff; font-weight: bold; cursor: pointer; margin-top: 10px; }
+
+        input[type="text"] {
+            width: 100%; padding: 15px; margin: 10px 0 20px 0;
+            border: 2px solid #000; font-size: 1.2rem; text-align: center;
+            font-weight: bold; text-transform: uppercase;
+        }
+
+        .btn-primary {
+            background: #000; color: white; border: none; padding: 15px 30px;
+            font-size: 1.2rem; font-weight: bold; cursor: pointer;
+            width: 100%; margin-bottom: 10px; text-transform: uppercase;
+        }
+        .btn-primary:hover { background: var(--highlight); }
+
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        .floater {
+            position: absolute; font-weight: 900; font-size: 40px;
+            animation: floatUp 2s forwards; pointer-events: none;
+            text-shadow: 2px 2px 0 #000; z-index: 50;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-100px); opacity: 0; }
+        }
+        
+        #console-log {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 30px;
+            background: black; color: #0f0; font-family: monospace;
+            font-size: 12px; padding: 5px; white-space: nowrap; overflow: hidden;
+            opacity: 0.7; pointer-events: none; z-index: 999;
+        }
+        
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
     <div id="sidebar">
-        <div class="logo">STRADDLE ROYALE</div>
+        <div class="logo">STRADDLE<br>ROYALE</div>
         <div class="code-box"><div class="code-value" id="room-display">----</div></div>
         <div id="player-list"></div>
     </div>
 
     <div id="arena">
         <div id="top-bar">INITIALIZING...</div>
-        <div id="debug-msg">Status: Ready</div>
-        
-        <!-- Players injected here -->
         <div id="arena-container"></div>
-
         <div id="action-area">
             <button id="btn-action" class="btn-action" disabled onclick="confirmAction()">✓</button>
         </div>
     </div>
 
+    <div id="console-log">System Ready...</div>
+
     <!-- SETUP -->
     <div id="setup-screen" class="modal-overlay">
         <div class="modal">
-            <h2>WELCOME</h2>
-            <input type="text" id="my-name" placeholder="YOUR NAME" maxlength="10">
-            <input type="text" id="my-avatar" placeholder="AVATAR URL (OPTIONAL)">
-            <button class="btn-main" onclick="startGame('HOST')">HOST NEW GAME</button>
-            <button class="btn-main" style="background:#555" onclick="showJoin()">JOIN GAME</button>
+            <h1 style="margin:0 0 20px 0; font-family:'Anton', sans-serif; font-size:40px;">WELCOME</h1>
+            <label style="font-weight:bold; display:block; text-align:left;">YOUR NAME</label>
+            <input type="text" id="my-name" placeholder="NAME" maxlength="10">
+            <label style="font-weight:bold; display:block; text-align:left;">AVATAR URL (Optional)</label>
+            <input type="text" id="my-avatar" placeholder="https://..." style="font-size:1rem; font-weight:normal;">
+            <button class="btn-primary" onclick="startGame('HOST')">CREATE ROOM</button>
+            <button class="btn-primary" style="background:#555" onclick="showJoin()">JOIN ROOM</button>
         </div>
     </div>
 
@@ -225,17 +286,15 @@
         <div class="modal">
             <h2>JOIN ROOM</h2>
             <input type="text" id="join-code" placeholder="CODE (ABCD)">
-            <button class="btn-main" onclick="startGame('JOIN')">CONNECT</button>
-            <button class="btn-main" style="background:#999; color:black" onclick="location.reload()">BACK</button>
+            <button class="btn-primary" onclick="startGame('JOIN')">CONNECT</button>
+            <button class="btn-primary" style="background:#999; color:black" onclick="location.reload()">BACK</button>
         </div>
     </div>
 
     <script>
-        // --- CONFIG ---
         const BROKER = 'wss://broker.emqx.io:8084/mqtt';
-        const TOPIC_ROOT = 'straddle-v9-fix/';
+        const TOPIC_ROOT = 'straddle-final-v10/';
 
-        // --- STATE ---
         let client;
         let myId = Math.random().toString(36).substr(2, 8);
         let myName = "Player";
@@ -246,22 +305,24 @@
         let players = [];
         let turnIndex = 0;
         let phase = "LOBBY"; 
-        let selectedTarget = null; // Local selection
+        let selectedTarget = null;
+        
+        let heartbeatInterval;
+        let joinRetryInterval;
 
-        // --- SETUP ---
+        function log(msg) {
+            document.getElementById('console-log').innerText = `> ${msg}`;
+            console.log(msg);
+        }
+
         function showJoin() {
             document.getElementById('setup-screen').classList.add('hidden');
             document.getElementById('join-screen').classList.remove('hidden');
         }
 
-        function debug(msg) {
-            document.getElementById('debug-msg').innerText = msg;
-            console.log(msg);
-        }
-
         function startGame(mode) {
             myName = document.getElementById('my-name').value.trim() || "Warrior";
-            myAvatar = document.getElementById('my-avatar').value.trim() || `https://api.dicebear.com/9.x/bottts/svg?seed=${myId}`;
+            myAvatar = document.getElementById('my-avatar').value.trim() || `https://api.dicebear.com/9.x/dylan/svg?seed=${myId}`;
 
             if (mode === 'HOST') {
                 isHost = true;
@@ -279,22 +340,28 @@
             connectNetwork();
         }
 
-        // --- NETWORK ---
         function connectNetwork() {
-            debug("Connecting to Relay...");
+            log("Connecting to Relay...");
             client = mqtt.connect(BROKER);
 
             client.on('connect', () => {
-                debug("Connected! Subscribing...");
+                log("Connected! Subscribing...");
                 client.subscribe(TOPIC_ROOT + roomCode);
-                if (!isHost) send({ type: 'HELLO', id: myId, name: myName, avatar: myAvatar });
-                render();
+                
+                if (isHost) {
+                    // HOST: Start Heartbeat immediately
+                    startHeartbeat();
+                    render();
+                } else {
+                    // CLIENT: Start Join Retry Loop
+                    startJoinRetry();
+                }
             });
 
             client.on('message', (topic, msg) => {
                 try {
                     const data = JSON.parse(msg.toString());
-                    if (data.sender === myId) return; // Ignore own messages
+                    if (data.sender === myId) return;
                     handleMsg(data);
                 } catch (e) { console.error(e); }
             });
@@ -305,27 +372,58 @@
             client.publish(TOPIC_ROOT + roomCode, JSON.stringify(payload));
         }
 
+        // --- HEARTBEAT & SYNC LOGIC ---
+
+        function startHeartbeat() {
+            if (!isHost) return;
+            // Broadcast state every 1.5 seconds to ensure clients are in sync
+            clearInterval(heartbeatInterval);
+            heartbeatInterval = setInterval(() => {
+                send({ type: 'STATE', players, turnIndex, phase });
+            }, 1500);
+        }
+
+        function startJoinRetry() {
+            if (isHost) return;
+            log("Knocking on room door...");
+            
+            // Send JOIN request every 2 seconds until we see ourselves in the list
+            send({ type: 'JOIN_REQ', id: myId, name: myName, avatar: myAvatar });
+            
+            clearInterval(joinRetryInterval);
+            joinRetryInterval = setInterval(() => {
+                // Check if we exist in the player list yet
+                const me = players.find(p => p.id === myId);
+                if (me) {
+                    log("Joined Successfully!");
+                    clearInterval(joinRetryInterval);
+                } else {
+                    log("Retrying connection...");
+                    send({ type: 'JOIN_REQ', id: myId, name: myName, avatar: myAvatar });
+                }
+            }, 2000);
+        }
+
         function handleMsg(data) {
             if (isHost) {
-                // HOST LOGIC
-                if (data.type === 'HELLO') {
+                if (data.type === 'JOIN_REQ') {
                     if (!players.find(p => p.id === data.id)) {
                         players.push({ id: data.id, name: data.name, avatar: data.avatar, hp: 3, dead: false });
-                        debug(`${data.name} Joined!`);
-                        broadcastState();
-                    } else {
-                        broadcastState(); // Re-sync existing player
+                        log(`${data.name} Joined!`);
+                        // Force immediate broadcast
+                        send({ type: 'STATE', players, turnIndex, phase });
                     }
                 } 
                 else if (data.type === 'ATTACK_CMD') {
-                    debug(`Attack Cmd from ${data.sender}`);
                     resolveAttack(data.sender, data.target);
                 }
             } else {
-                // CLIENT LOGIC
+                // CLIENT
                 if (data.type === 'STATE') {
+                    // If I am receiving state, I am connected. Stop retrying.
+                    clearInterval(joinRetryInterval);
+                    
                     players = data.players;
-                    // Only update turn/phase if changed to avoid UI jitter
                     if (turnIndex !== data.turnIndex) selectedTarget = null;
                     turnIndex = data.turnIndex;
                     phase = data.phase;
@@ -337,42 +435,18 @@
             }
         }
 
-        function broadcastState() {
-            send({ type: 'STATE', players, turnIndex, phase });
-            render();
-        }
-
         // --- GAME LOGIC ---
         
         function clickPlayer(id) {
-            // 1. Check Phase
-            if (phase !== 'IDLE') {
-                debug(`Ignored Click: Phase is ${phase}`);
-                return;
-            }
-
-            // 2. Check Turn
+            if (phase !== 'IDLE') return;
             const turnPlayer = players[turnIndex];
-            if (!turnPlayer || turnPlayer.id !== myId) {
-                debug("Ignored Click: Not your turn");
-                return;
-            }
-
-            // 3. Check Target validity
-            if (id === myId) {
-                debug("Ignored Click: Cannot target self");
-                return;
-            }
+            if (!turnPlayer || turnPlayer.id !== myId) return;
+            if (id === myId) return;
             
             const t = players.find(p => p.id === id);
-            if (!t || t.dead) {
-                debug("Ignored Click: Target is dead or invalid");
-                return;
-            }
+            if (!t || t.dead) return;
 
-            // 4. Select
             selectedTarget = id;
-            debug(`Selected Target: ${t.name}`);
             render();
         }
 
@@ -380,7 +454,7 @@
             if (isHost && phase === 'LOBBY') {
                 if (players.length < 2) return alert("Need 2 players");
                 phase = 'IDLE';
-                broadcastState();
+                send({ type: 'STATE', players, turnIndex, phase }); // Immediate Update
                 return;
             }
 
@@ -393,38 +467,36 @@
                 if (isHost) {
                     resolveAttack(myId, selectedTarget);
                 } else {
-                    debug("Sending Attack Command...");
                     send({ type: 'ATTACK_CMD', target: selectedTarget });
-                    // Optimistic Update
-                    phase = 'ROLLING'; 
+                    phase = 'ROLLING'; // Optimistic
                     render(); 
                 }
             }
         }
 
         function resolveAttack(attId, defId) {
-            const att = players.find(p => p.id === attId);
-            const def = players.find(p => p.id === defId);
-            
-            // Security check
             const currentTurn = players[turnIndex];
-            if (currentTurn.id !== attId) return debug("Attack Rejected: Wrong Turn");
+            if (currentTurn.id !== attId) return;
 
             phase = 'ROLLING';
             selectedTarget = null;
-            broadcastState();
+            // Immediate broadcast to lock out other clicks
+            send({ type: 'STATE', players, turnIndex, phase });
 
-            // Logic
+            // Dice Logic
             const r1 = Math.floor(Math.random() * 20) + 1;
             const r2 = Math.floor(Math.random() * 20) + 1;
             let hit = r1 > r2;
             
             setTimeout(() => {
                 if (hit) {
-                    def.hp--;
-                    if (def.hp <= 0) { def.hp = 0; def.dead = true; }
-                    send({ type: 'FX', target: defId, text: `HIT! -1`, color: '#e94560' });
-                    showFloat(defId, `HIT! -1`, '#e94560');
+                    const def = players.find(p => p.id === defId);
+                    if (def) {
+                        def.hp--;
+                        if (def.hp <= 0) { def.hp = 0; def.dead = true; }
+                    }
+                    send({ type: 'FX', target: defId, text: `HIT! (-1)`, color: '#e94560' });
+                    showFloat(defId, `HIT! (-1)`, '#e94560');
                 } else {
                     send({ type: 'FX', target: defId, text: `BLOCKED`, color: '#fff' });
                     showFloat(defId, `BLOCKED`, '#fff');
@@ -436,7 +508,6 @@
                 if (alive.length === 1) {
                     phase = 'GAMEOVER';
                 } else {
-                    // Next Turn
                     let loop = 0;
                     do {
                         turnIndex = (turnIndex + 1) % players.length;
@@ -444,12 +515,10 @@
                     } while (players[turnIndex].dead && loop < 20);
                     phase = 'IDLE';
                 }
-                broadcastState();
+                send({ type: 'STATE', players, turnIndex, phase });
             }, 3000);
         }
 
-
-        // --- RENDER ---
         function render() {
             const list = document.getElementById('player-list');
             const arena = document.getElementById('arena-container');
@@ -462,7 +531,7 @@
             const turnPlayer = players[turnIndex] || {};
             const isMyTurn = turnPlayer.id === myId;
 
-            // 1. Top Bar Status
+            // Top Bar
             if (phase === 'LOBBY') {
                 topBar.innerText = `LOBBY: ${players.length} WARRIORS`;
                 btn.innerHTML = "▶";
@@ -474,12 +543,12 @@
                 btn.innerHTML = "↺";
                 btn.disabled = false;
                 btn.style.opacity = 1;
+                btn.onclick = () => location.reload();
             } else if (phase === 'ROLLING') {
                 topBar.innerText = "ROLLING DICE...";
                 btn.disabled = true;
                 btn.style.opacity = 0;
             } else {
-                // IDLE
                 if (isMyTurn) {
                     topBar.innerText = selectedTarget ? "CLICK CHECK TO FIRE" : "YOUR TURN - SELECT TARGET";
                     topBar.style.color = selectedTarget ? "#f1c40f" : "#2ecc71";
@@ -494,7 +563,7 @@
                 }
             }
 
-            // 2. Draw Players
+            // Draw Players
             const radius = 200;
             players.forEach((p, i) => {
                 // Sidebar
@@ -503,7 +572,6 @@
                 if (!p.dead && i === turnIndex) card.classList.add('active-turn');
                 if (selectedTarget === p.id) card.classList.add('selected');
                 
-                // Dots
                 let dots = '';
                 for(let h=0; h<3; h++) dots += `<span class="hp-dot ${h < p.hp ? 'active' : ''}"></span>`;
 
@@ -514,7 +582,7 @@
                         <div>${dots}</div>
                     </div>
                 `;
-                // DIRECT CLICK HANDLER
+                // Direct Clicks
                 card.onclick = () => clickPlayer(p.id);
                 list.appendChild(card);
 
@@ -529,19 +597,19 @@
                     av.className = 'arena-player';
                     if (i === turnIndex) av.classList.add('active-turn');
                     if (selectedTarget === p.id) av.classList.add('selected');
+                    if (phase==='IDLE' && isMyTurn && p.id !== myId) av.classList.add('clickable');
                     
-                    // Centering
                     av.style.left = `calc(50% + ${x}px)`;
                     av.style.top = `calc(50% + ${y}px)`;
                     av.style.marginLeft = "-60px";
-                    av.style.marginTop = "-70px"; // Height/2
-                    av.id = `av-${p.id}`; // For FX
+                    av.style.marginTop = "-70px";
+                    av.id = `av-${p.id}`;
 
                     av.innerHTML = `
                         <img src="${p.avatar}" class="arena-avatar">
                         <div class="arena-name">${p.name}</div>
                     `;
-                    // DIRECT CLICK HANDLER
+                    // Direct Clicks
                     av.onclick = () => clickPlayer(p.id);
                     arena.appendChild(av);
                 }
@@ -559,7 +627,6 @@
             setTimeout(() => f.remove(), 2000);
         }
 
-        // Force initial resize just in case
         window.addEventListener('resize', render);
 
     </script>
