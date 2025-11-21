@@ -3,250 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Straddle Royale v1</title>
+    <title>Straddle Royale V2</title>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Anton&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     
     <style>
-        :root {
-            --bg-dark: #1a1a2e;
-            --sidebar-bg: #16213e;
-            --highlight: #e94560;
-            --accent: #f1c40f;
-            --text-main: #ffffff;
-        }
-
+        :root { --bg: #1a1a2e; --panel: #16213e; --red: #e94560; --yellow: #f1c40f; --green: #2ecc71; --white: #fff; }
         * { box-sizing: border-box; user-select: none; }
+        body { margin: 0; height: 100vh; background: var(--bg); color: var(--white); font-family: 'Roboto', sans-serif; display: flex; overflow: hidden; }
 
-        body {
-            margin: 0;
-            height: 100vh;
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            font-family: 'Roboto', sans-serif;
-            overflow: hidden;
-            display: flex;
-        }
+        /* SIDEBAR */
+        #sidebar { width: 350px; background: var(--panel); border-right: 2px solid #000; display: flex; flex-direction: column; padding: 20px; z-index: 20; box-shadow: 5px 0 20px #000; }
+        .logo { font-family: 'Anton', sans-serif; font-size: 42px; color: var(--red); line-height: 1; margin-bottom: 20px; text-shadow: 2px 2px #000; }
+        
+        .code-box { background: #000; border: 2px dashed var(--yellow); padding: 15px; text-align: center; margin-bottom: 20px; border-radius: 8px; }
+        .code-val { font-family: 'Anton', sans-serif; font-size: 48px; color: var(--yellow); margin-top: 5px; letter-spacing: 3px; }
+        
+        #player-list { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
 
-        /* --- SIDEBAR --- */
-        #sidebar {
-            width: 350px;
-            background: var(--sidebar-bg);
-            border-right: 2px solid #000;
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-            z-index: 10;
-            box-shadow: 5px 0 15px rgba(0,0,0,0.3);
-        }
-
-        .logo {
-            font-family: 'Anton', sans-serif;
-            font-size: 42px;
-            color: var(--highlight);
-            text-transform: uppercase;
-            line-height: 1;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 0 #000;
-        }
-
-        .code-box {
-            background: #000;
-            border: 2px dashed var(--accent);
-            padding: 15px;
-            text-align: center;
-            margin-bottom: 20px;
-            border-radius: 8px;
-        }
-        .code-label { color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
-        .code-value { 
-            font-family: 'Anton', sans-serif; 
-            font-size: 48px; 
-            color: var(--accent); 
-            letter-spacing: 3px; 
-            line-height: 1;
-            margin-top: 5px;
-        }
-
-        #player-list {
-            flex-grow: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        /* Player Card */
-        .player-card {
-            background: #252f4e;
-            border-radius: 8px;
-            padding: 10px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            border: 3px solid transparent;
-            transition: 0.1s;
-            position: relative;
-        }
-
+        /* CARDS */
+        .player-card { background: #252f4e; border-radius: 8px; padding: 10px; display: flex; align-items: center; gap: 12px; border: 3px solid transparent; transition: 0.1s; }
         .player-card.clickable { cursor: pointer; }
-        .player-card.clickable:hover { background: #3a4b7c; border-color: rgba(255,255,255,0.5); }
+        .player-card.clickable:hover { background: #3a4b7c; border-color: rgba(255,255,255,0.3); }
+        .player-card.active { border-color: var(--green); background: #1e3a2a; }
+        .player-card.target { border-color: var(--red) !important; background: #5c1818 !important; }
+        .player-card.dead { opacity: 0.4; filter: grayscale(1); }
+
+        .avatar { width: 50px; height: 50px; border-radius: 8px; background: #000; border: 2px solid #000; pointer-events: none; }
+        .hp-dot { width: 12px; height: 12px; background: #333; border-radius: 50%; border: 1px solid #000; display: inline-block; margin-right: 4px; }
+        .hp-dot.on { background: var(--green); box-shadow: 0 0 5px var(--green); }
+
+        /* ARENA */
+        #arena { flex-grow: 1; position: relative; background: radial-gradient(circle, #232342 0%, #1a1a2e 80%); display: flex; justify-content: center; align-items: center; }
         
-        .player-card.active-turn { border-color: #2ecc71; background: #1e3a2a; }
-        .player-card.selected { background: #5c1818 !important; border-color: var(--highlight) !important; }
-        .player-card.dead { opacity: 0.4; filter: grayscale(1); pointer-events: none; }
+        #top-bar { position: absolute; top: 20px; background: rgba(0,0,0,0.7); padding: 10px 30px; border-radius: 30px; font-weight: bold; border: 1px solid #555; font-size: 1.2rem; z-index: 10; }
 
-        .card-avatar {
-            width: 50px; height: 50px;
-            border-radius: 8px;
-            object-fit: cover;
-            background: #000;
-            border: 2px solid #000;
-            pointer-events: none;
-        }
-
-        .card-info { flex-grow: 1; pointer-events: none; }
-        .card-name { font-weight: 700; font-size: 1.2rem; display: block; }
+        .arena-p { position: absolute; display: flex; flex-direction: column; align-items: center; width: 120px; transition: transform 0.5s; z-index: 5; margin-left: -60px; margin-top: -60px; }
+        .arena-av { width: 100px; height: 100px; border-radius: 50%; border: 4px solid #333; background: #000; transition: 0.2s; pointer-events: none; }
         
-        .hp-container { display: flex; gap: 5px; margin-top: 5px; }
-        .hp-dot { width: 12px; height: 12px; background: #333; border-radius: 50%; border: 1px solid #000; }
-        .hp-dot.active { background: #2ecc71; box-shadow: 0 0 5px #2ecc71; }
-
-        /* --- ARENA --- */
-        #arena {
-            flex-grow: 1;
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: radial-gradient(circle at center, #232342 0%, #1a1a2e 70%);
-        }
-
-        #top-bar {
-            position: absolute;
-            top: 20px;
-            background: rgba(0,0,0,0.6);
-            padding: 10px 30px;
-            border-radius: 30px;
-            font-weight: bold;
-            font-size: 1.2rem;
-            color: white;
-            border: 1px solid #444;
-            z-index: 20;
-        }
-
-        .arena-player {
-            position: absolute;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 120px;
-            transition: transform 0.5s ease-out;
-            left: 50%; top: 50%;
-            margin-left: -60px; margin-top: -60px; 
-        }
-
-        .arena-avatar {
-            width: 100px; height: 100px;
-            border-radius: 50%;
-            border: 4px solid #333;
-            object-fit: cover;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-            background: #000;
-            transition: 0.2s;
-            pointer-events: none;
-        }
-
-        .arena-player.clickable:hover .arena-avatar {
-            border-color: white;
-            transform: scale(1.05);
-            cursor: pointer;
-        }
-
-        .arena-player.active-turn .arena-avatar { border-color: #2ecc71; box-shadow: 0 0 20px #2ecc71; transform: scale(1.1); }
-        .arena-player.selected .arena-avatar { border-color: var(--highlight); box-shadow: 0 0 30px var(--highlight); animation: shake 0.5s infinite; }
-        .arena-player.dead { opacity: 0; transition: opacity 1s; pointer-events: none; } 
-
-        .arena-name {
-            margin-top: 10px;
-            background: rgba(0,0,0,0.8);
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-weight: bold;
-            text-shadow: 1px 1px 0 #000;
-            pointer-events: none;
-        }
-
-        /* --- BUTTONS --- */
-        #action-area { position: absolute; bottom: 40px; right: 40px; z-index: 20; }
-
-        .btn-action {
-            width: 90px; height: 90px;
-            border-radius: 50%;
-            border: 4px solid white;
-            background: var(--highlight);
-            color: white;
-            font-size: 40px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
-            transition: 0.2s;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .btn-action:hover { transform: scale(1.1) rotate(5deg); background: #ff6b81; }
-        .btn-action:disabled { background: #555; border-color: #777; cursor: not-allowed; opacity: 0; pointer-events: none; }
-
-        /* --- MODALS --- */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.95);
-            display: flex; justify-content: center; align-items: center;
-            z-index: 1000;
-        }
+        .arena-p.clickable { cursor: pointer; }
+        .arena-p.clickable:hover .arena-av { transform: scale(1.1); border-color: #fff; }
+        .arena-p.active .arena-av { border-color: var(--green); box-shadow: 0 0 25px var(--green); transform: scale(1.1); }
+        .arena-p.target .arena-av { border-color: var(--red); box-shadow: 0 0 35px var(--red); animation: shake 0.5s infinite; }
         
-        .modal {
-            background: #fff; color: #000; padding: 40px; border-radius: 4px;
-            text-align: center; width: 400px; box-shadow: 0 0 50px rgba(233, 69, 96, 0.5);
-        }
+        .arena-name { background: rgba(0,0,0,0.8); padding: 4px 10px; border-radius: 4px; margin-top: 5px; font-weight: bold; pointer-events: none; }
 
-        input[type="text"] {
-            width: 100%; padding: 15px; margin: 10px 0 20px 0;
-            border: 2px solid #000; font-size: 1.2rem; text-align: center;
-            font-weight: bold; text-transform: uppercase;
-        }
+        /* CONTROLS */
+        #action-area { position: absolute; bottom: 40px; right: 40px; z-index: 50; }
+        .btn-big { width: 90px; height: 90px; border-radius: 50%; border: 4px solid #fff; background: var(--red); color: #fff; font-size: 40px; font-weight: bold; cursor: pointer; box-shadow: 0 5px 20px #000; transition: 0.2s; }
+        .btn-big:hover { transform: scale(1.1); background: #ff6b81; }
+        .btn-big:disabled { background: #555; border-color: #777; opacity: 0; pointer-events: none; }
 
-        .btn-primary {
-            background: #000; color: white; border: none; padding: 15px 30px;
-            font-size: 1.2rem; font-weight: bold; cursor: pointer;
-            width: 100%; margin-bottom: 10px; text-transform: uppercase;
-        }
-        .btn-primary:hover { background: var(--highlight); }
+        /* MODALS */
+        .modal-wrap { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .modal { background: #fff; color: #000; padding: 40px; border-radius: 8px; width: 400px; text-align: center; }
+        input { width: 100%; padding: 15px; margin: 10px 0; border: 2px solid #000; font-size: 1.2rem; text-align: center; font-weight: bold; text-transform: uppercase; }
+        .btn-main { width: 100%; padding: 15px; background: #000; color: #fff; font-weight: bold; cursor: pointer; font-size: 1.2rem; margin-top: 10px; }
+        .btn-main:hover { background: var(--red); }
 
-        @keyframes shake {
-            0% { transform: translate(1px, 1px) rotate(0deg); }
-            20% { transform: translate(-3px, 0px) rotate(1deg); }
-            40% { transform: translate(1px, -1px) rotate(1deg); }
-            60% { transform: translate(-3px, 1px) rotate(0deg); }
-            80% { transform: translate(-1px, -1px) rotate(1deg); }
-            100% { transform: translate(1px, -2px) rotate(-1deg); }
-        }
-
-        .floater {
-            position: absolute; font-weight: 900; font-size: 40px;
-            animation: floatUp 2s forwards; pointer-events: none;
-            text-shadow: 2px 2px 0 #000; z-index: 50;
-        }
-        @keyframes floatUp {
-            0% { transform: translateY(0); opacity: 1; }
-            100% { transform: translateY(-100px); opacity: 0; }
-        }
+        #console { position: absolute; bottom: 0; left: 0; width: 100%; height: 25px; background: #000; color: #0f0; font-family: monospace; font-size: 12px; padding: 4px; opacity: 0.6; pointer-events: none; z-index: 999; }
         
-        #console-log {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 30px;
-            background: black; color: #0f0; font-family: monospace;
-            font-size: 12px; padding: 5px; white-space: nowrap; overflow: hidden;
-            opacity: 0.7; pointer-events: none; z-index: 999;
-        }
+        @keyframes shake { 0% { transform: rotate(0deg); } 25% { transform: rotate(5deg); } 75% { transform: rotate(-5deg); } }
+        .floater { position: absolute; font-size: 40px; font-weight: 900; animation: float 2s forwards; pointer-events: none; text-shadow: 2px 2px #000; z-index: 100; }
+        @keyframes float { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-80px); opacity: 0; } }
         
         .hidden { display: none !important; }
     </style>
@@ -255,46 +74,49 @@
 
     <div id="sidebar">
         <div class="logo">STRADDLE<br>ROYALE</div>
-        <div class="code-box"><div class="code-value" id="room-display">----</div></div>
+        <div class="code-box">
+            <div style="color:#888; font-size:12px;">ROOM CODE</div>
+            <div class="code-val" id="room-disp">----</div>
+        </div>
         <div id="player-list"></div>
     </div>
 
     <div id="arena">
-        <div id="top-bar">INITIALIZING...</div>
-        <div id="arena-container"></div>
+        <div id="top-bar">CONNECTING...</div>
+        <div id="arena-layer"></div>
         <div id="action-area">
-            <button id="btn-action" class="btn-action" disabled onclick="confirmAction()">✓</button>
+            <button id="btn-act" class="btn-big" disabled onclick="confirmAction()">✓</button>
         </div>
     </div>
 
-    <div id="console-log">System Ready...</div>
+    <div id="console">System Ready. v11 Stable.</div>
 
     <!-- SETUP -->
-    <div id="setup-screen" class="modal-overlay">
+    <div id="setup" class="modal-wrap">
         <div class="modal">
-            <h1 style="margin:0 0 20px 0; font-family:'Anton', sans-serif; font-size:40px;">WELCOME</h1>
-            <label style="font-weight:bold; display:block; text-align:left;">YOUR NAME</label>
+            <h1 style="margin:0 0 20px 0; font-family:'Anton'; font-size:40px;">WELCOME</h1>
             <input type="text" id="my-name" placeholder="NAME" maxlength="10">
-            <label style="font-weight:bold; display:block; text-align:left;">AVATAR URL (Optional)</label>
-            <input type="text" id="my-avatar" placeholder="https://..." style="font-size:1rem; font-weight:normal;">
-            <button class="btn-primary" onclick="startGame('HOST')">CREATE ROOM</button>
-            <button class="btn-primary" style="background:#555" onclick="showJoin()">JOIN ROOM</button>
+            <input type="text" id="my-av" placeholder="AVATAR URL (OPTIONAL)">
+            <button class="btn-main" onclick="start('HOST')">HOST GAME</button>
+            <button class="btn-main" style="background:#555" onclick="showJoin()">JOIN GAME</button>
         </div>
     </div>
 
-    <div id="join-screen" class="modal-overlay hidden">
+    <div id="join" class="modal-wrap hidden">
         <div class="modal">
-            <h2>JOIN ROOM</h2>
-            <input type="text" id="join-code" placeholder="CODE (ABCD)">
-            <button class="btn-primary" onclick="startGame('JOIN')">CONNECT</button>
-            <button class="btn-primary" style="background:#999; color:black" onclick="location.reload()">BACK</button>
+            <h1>JOIN ROOM</h1>
+            <input type="text" id="join-code" placeholder="ABCD">
+            <button class="btn-main" onclick="start('JOIN')">CONNECT</button>
+            <button class="btn-main" style="background:#ccc; color:#000" onclick="location.reload()">BACK</button>
         </div>
     </div>
 
     <script>
+        // --- CONFIG ---
         const BROKER = 'wss://broker.emqx.io:8084/mqtt';
-        const TOPIC_ROOT = 'straddle-final-v10/';
+        const TOPIC_ROOT = 'straddle-stable-v11/';
 
+        // --- STATE ---
         let client;
         let myId = Math.random().toString(36).substr(2, 8);
         let myName = "Player";
@@ -302,27 +124,23 @@
         let roomCode = "";
         let isHost = false;
 
+        // Synced State
         let players = [];
         let turnIndex = 0;
-        let phase = "LOBBY"; 
-        let selectedTarget = null;
-        
-        let heartbeatInterval;
-        let joinRetryInterval;
+        let phase = "LOBBY";
+        let targetedId = null; // Who is currently being targeted (Global)
 
-        function log(msg) {
-            document.getElementById('console-log').innerText = `> ${msg}`;
-            console.log(msg);
-        }
+        // Local State
+        let lastRenderState = ""; // For Diffing (Prevents Thrashing)
+        let heartbeatTimer;
+        let retryTimer;
 
-        function showJoin() {
-            document.getElementById('setup-screen').classList.add('hidden');
-            document.getElementById('join-screen').classList.remove('hidden');
-        }
+        function log(t) { document.getElementById('console').innerText = `> ${t}`; console.log(t); }
+        function showJoin() { document.getElementById('setup').classList.add('hidden'); document.getElementById('join').classList.remove('hidden'); }
 
-        function startGame(mode) {
+        function start(mode) {
             myName = document.getElementById('my-name').value.trim() || "Warrior";
-            myAvatar = document.getElementById('my-avatar').value.trim() || `https://api.dicebear.com/9.x/dylan/svg?seed=${myId}`;
+            myAvatar = document.getElementById('my-av').value.trim() || `https://api.dicebear.com/9.x/bottts/svg?seed=${myId}`;
 
             if (mode === 'HOST') {
                 isHost = true;
@@ -333,128 +151,113 @@
                 if (roomCode.length < 4) return alert("Invalid Code");
             }
 
-            document.getElementById('setup-screen').classList.add('hidden');
-            document.getElementById('join-screen').classList.add('hidden');
-            document.getElementById('room-display').innerText = roomCode;
-
-            connectNetwork();
+            document.getElementById('setup').classList.add('hidden');
+            document.getElementById('join').classList.add('hidden');
+            document.getElementById('room-disp').innerText = roomCode;
+            
+            connect();
         }
 
-        function connectNetwork() {
-            log("Connecting to Relay...");
+        function connect() {
+            log("Connecting...");
             client = mqtt.connect(BROKER);
-
             client.on('connect', () => {
-                log("Connected! Subscribing...");
+                log("Connected. Subscribing...");
                 client.subscribe(TOPIC_ROOT + roomCode);
                 
                 if (isHost) {
-                    // HOST: Start Heartbeat immediately
-                    startHeartbeat();
+                    heartbeatTimer = setInterval(sendState, 1000); // 1s Heartbeat
                     render();
                 } else {
-                    // CLIENT: Start Join Retry Loop
-                    startJoinRetry();
+                    // Client Retry Logic
+                    send({ type: 'JOIN', id: myId, name: myName, avatar: myAvatar });
+                    retryTimer = setInterval(() => {
+                        // If we aren't in the player list yet, keep knocking
+                        if (!players.find(p => p.id === myId)) {
+                            log("Knocking...");
+                            send({ type: 'JOIN', id: myId, name: myName, avatar: myAvatar });
+                        } else {
+                            clearInterval(retryTimer);
+                            log("Joined!");
+                        }
+                    }, 2000);
                 }
             });
 
-            client.on('message', (topic, msg) => {
+            client.on('message', (t, m) => {
                 try {
-                    const data = JSON.parse(msg.toString());
-                    if (data.sender === myId) return;
-                    handleMsg(data);
-                } catch (e) { console.error(e); }
+                    const d = JSON.parse(m.toString());
+                    if (d.sender !== myId) handle(d);
+                } catch (e) {}
             });
         }
 
-        function send(payload) {
-            payload.sender = myId;
-            client.publish(TOPIC_ROOT + roomCode, JSON.stringify(payload));
+        function send(d) {
+            d.sender = myId;
+            client.publish(TOPIC_ROOT + roomCode, JSON.stringify(d));
         }
 
-        // --- HEARTBEAT & SYNC LOGIC ---
-
-        function startHeartbeat() {
-            if (!isHost) return;
-            // Broadcast state every 1.5 seconds to ensure clients are in sync
-            clearInterval(heartbeatInterval);
-            heartbeatInterval = setInterval(() => {
-                send({ type: 'STATE', players, turnIndex, phase });
-            }, 1500);
-        }
-
-        function startJoinRetry() {
-            if (isHost) return;
-            log("Knocking on room door...");
-            
-            // Send JOIN request every 2 seconds until we see ourselves in the list
-            send({ type: 'JOIN_REQ', id: myId, name: myName, avatar: myAvatar });
-            
-            clearInterval(joinRetryInterval);
-            joinRetryInterval = setInterval(() => {
-                // Check if we exist in the player list yet
-                const me = players.find(p => p.id === myId);
-                if (me) {
-                    log("Joined Successfully!");
-                    clearInterval(joinRetryInterval);
-                } else {
-                    log("Retrying connection...");
-                    send({ type: 'JOIN_REQ', id: myId, name: myName, avatar: myAvatar });
-                }
-            }, 2000);
-        }
-
-        function handleMsg(data) {
+        function handle(d) {
             if (isHost) {
-                if (data.type === 'JOIN_REQ') {
-                    if (!players.find(p => p.id === data.id)) {
-                        players.push({ id: data.id, name: data.name, avatar: data.avatar, hp: 3, dead: false });
-                        log(`${data.name} Joined!`);
-                        // Force immediate broadcast
-                        send({ type: 'STATE', players, turnIndex, phase });
+                if (d.type === 'JOIN') {
+                    if (!players.find(p => p.id === d.id)) {
+                        players.push({ id: d.id, name: d.name, avatar: d.avatar, hp: 3, dead: false });
+                        log(`${d.name} Joined`);
+                        sendState(); // Instant update
                     }
                 } 
-                else if (data.type === 'ATTACK_CMD') {
-                    resolveAttack(data.sender, data.target);
+                else if (d.type === 'TARGET') {
+                    targetedId = d.targetId;
+                    sendState();
+                }
+                else if (d.type === 'ATTACK') {
+                    resolveCombat(d.sender, d.targetId);
                 }
             } else {
-                // CLIENT
-                if (data.type === 'STATE') {
-                    // If I am receiving state, I am connected. Stop retrying.
-                    clearInterval(joinRetryInterval);
-                    
-                    players = data.players;
-                    if (turnIndex !== data.turnIndex) selectedTarget = null;
-                    turnIndex = data.turnIndex;
-                    phase = data.phase;
-                    render();
+                // Client
+                if (d.type === 'STATE') {
+                    players = d.players;
+                    turnIndex = d.turnIndex;
+                    phase = d.phase;
+                    targetedId = d.targetedId;
+                    render(); // Render uses diffing, so safe to call often
                 }
-                else if (data.type === 'FX') {
-                    showFloat(data.target, data.text, data.color);
+                else if (d.type === 'FX') {
+                    showFloat(d.targetId, d.text, d.color);
                 }
             }
         }
 
-        // --- GAME LOGIC ---
-        
+        function sendState() {
+            send({ type: 'STATE', players, turnIndex, phase, targetedId });
+            render();
+        }
+
+        // --- ACTIONS ---
+
         function clickPlayer(id) {
             if (phase !== 'IDLE') return;
-            const turnPlayer = players[turnIndex];
-            if (!turnPlayer || turnPlayer.id !== myId) return;
-            if (id === myId) return;
+            const turnP = players[turnIndex];
+            if (!turnP || turnP.id !== myId) return; // Not my turn
+            if (id === myId) return; // Self
             
             const t = players.find(p => p.id === id);
             if (!t || t.dead) return;
 
-            selectedTarget = id;
-            render();
+            // Set target locally AND tell host (so everyone sees the red ring)
+            targetedId = id;
+            
+            if (isHost) sendState();
+            else send({ type: 'TARGET', targetId: id });
+            
+            render(); // Instant local feedback
         }
 
         function confirmAction() {
             if (isHost && phase === 'LOBBY') {
                 if (players.length < 2) return alert("Need 2 players");
                 phase = 'IDLE';
-                send({ type: 'STATE', players, turnIndex, phase }); // Immediate Update
+                sendState();
                 return;
             }
 
@@ -463,172 +266,101 @@
                 return;
             }
 
-            if (phase === 'IDLE' && selectedTarget) {
-                if (isHost) {
-                    resolveAttack(myId, selectedTarget);
-                } else {
-                    send({ type: 'ATTACK_CMD', target: selectedTarget });
-                    phase = 'ROLLING'; // Optimistic
-                    render(); 
-                }
+            if (phase === 'IDLE' && targetedId) {
+                if (isHost) resolveCombat(myId, targetedId);
+                else send({ type: 'ATTACK', targetId: targetedId });
+                
+                phase = 'ROLLING'; // Optimistic
+                render();
             }
         }
 
-        function resolveAttack(attId, defId) {
-            const currentTurn = players[turnIndex];
-            if (currentTurn.id !== attId) return;
+        function resolveCombat(attId, defId) {
+            const current = players[turnIndex];
+            if (current.id !== attId) return; // Security check
 
             phase = 'ROLLING';
-            selectedTarget = null;
-            // Immediate broadcast to lock out other clicks
-            send({ type: 'STATE', players, turnIndex, phase });
+            targetedId = defId; // Ensure sync
+            sendState();
 
-            // Dice Logic
-            const r1 = Math.floor(Math.random() * 20) + 1;
-            const r2 = Math.floor(Math.random() * 20) + 1;
+            const r1 = Math.floor(Math.random()*20)+1;
+            const r2 = Math.floor(Math.random()*20)+1;
             let hit = r1 > r2;
-            
+
             setTimeout(() => {
                 if (hit) {
                     const def = players.find(p => p.id === defId);
                     if (def) {
                         def.hp--;
-                        if (def.hp <= 0) { def.hp = 0; def.dead = true; }
+                        if (def.hp<=0) { def.hp=0; def.dead=true; }
                     }
-                    send({ type: 'FX', target: defId, text: `HIT! (-1)`, color: '#e94560' });
-                    showFloat(defId, `HIT! (-1)`, '#e94560');
+                    send({ type: 'FX', targetId: defId, text: "HIT! -1", color: '#e94560' });
+                    showFloat(defId, "HIT! -1", '#e94560');
                 } else {
-                    send({ type: 'FX', target: defId, text: `BLOCKED`, color: '#fff' });
-                    showFloat(defId, `BLOCKED`, '#fff');
+                    send({ type: 'FX', targetId: defId, text: "BLOCKED", color: '#fff' });
+                    showFloat(defId, "BLOCKED", '#fff');
                 }
             }, 1000);
 
             setTimeout(() => {
+                targetedId = null; // Clear target
                 const alive = players.filter(p => !p.dead);
-                if (alive.length === 1) {
-                    phase = 'GAMEOVER';
-                } else {
-                    let loop = 0;
-                    do {
-                        turnIndex = (turnIndex + 1) % players.length;
-                        loop++;
-                    } while (players[turnIndex].dead && loop < 20);
+                if (alive.length === 1) phase = 'GAMEOVER';
+                else {
+                    let i=0;
+                    do { turnIndex = (turnIndex+1)%players.length; i++; }
+                    while(players[turnIndex].dead && i<20);
                     phase = 'IDLE';
                 }
-                send({ type: 'STATE', players, turnIndex, phase });
+                sendState();
             }, 3000);
         }
 
+        // --- RENDERER (WITH DIFFING) ---
         function render() {
+            // 1. Create State Hash
+            const currentState = JSON.stringify({ players, turnIndex, phase, targetedId, myId });
+            if (currentState === lastRenderState) return; // NOTHING CHANGED, DO NOT TOUCH DOM
+            lastRenderState = currentState;
+
             const list = document.getElementById('player-list');
-            const arena = document.getElementById('arena-container');
-            const topBar = document.getElementById('top-bar');
-            const btn = document.getElementById('btn-action');
+            const arena = document.getElementById('arena-layer');
+            const bar = document.getElementById('top-bar');
+            const btn = document.getElementById('btn-act');
 
             list.innerHTML = '';
             arena.innerHTML = '';
 
-            const turnPlayer = players[turnIndex] || {};
-            const isMyTurn = turnPlayer.id === myId;
+            const turnP = players[turnIndex] || {};
+            const isMyTurn = turnP.id === myId;
 
-            // Top Bar
+            // UI State
             if (phase === 'LOBBY') {
-                topBar.innerText = `LOBBY: ${players.length} WARRIORS`;
+                bar.innerText = `LOBBY: ${players.length} WARRIORS`;
                 btn.innerHTML = "▶";
                 btn.disabled = !isHost;
                 btn.style.opacity = isHost ? 1 : 0.5;
             } else if (phase === 'GAMEOVER') {
                 const w = players.find(p => !p.dead);
-                topBar.innerText = `WINNER: ${w ? w.name : 'NONE'}`;
+                bar.innerText = `WINNER: ${w?w.name:'NONE'}`;
                 btn.innerHTML = "↺";
                 btn.disabled = false;
                 btn.style.opacity = 1;
                 btn.onclick = () => location.reload();
             } else if (phase === 'ROLLING') {
-                topBar.innerText = "ROLLING DICE...";
+                bar.innerText = "ROLLING DICE...";
                 btn.disabled = true;
                 btn.style.opacity = 0;
             } else {
+                // IDLE
                 if (isMyTurn) {
-                    topBar.innerText = selectedTarget ? "CLICK CHECK TO FIRE" : "YOUR TURN - SELECT TARGET";
-                    topBar.style.color = selectedTarget ? "#f1c40f" : "#2ecc71";
+                    bar.innerText = targetedId ? "CLICK CHECK TO FIRE" : "YOUR TURN - SELECT TARGET";
+                    bar.style.color = targetedId ? "#f1c40f" : "#2ecc71";
                     btn.innerHTML = "✓";
-                    btn.disabled = !selectedTarget;
-                    btn.style.opacity = selectedTarget ? 1 : 0.3;
+                    btn.disabled = !targetedId;
+                    btn.style.opacity = targetedId ? 1 : 0.3;
                 } else {
-                    topBar.innerText = `${turnPlayer.name}'S TURN`;
-                    topBar.style.color = "white";
+                    bar.innerText = `${turnP.name}'S TURN`;
+                    bar.style.color = "#fff";
                     btn.disabled = true;
                     btn.style.opacity = 0;
-                }
-            }
-
-            // Draw Players
-            const radius = 200;
-            players.forEach((p, i) => {
-                // Sidebar
-                const card = document.createElement('div');
-                card.className = `player-card ${p.dead ? 'dead' : ''}`;
-                if (!p.dead && i === turnIndex) card.classList.add('active-turn');
-                if (selectedTarget === p.id) card.classList.add('selected');
-                
-                let dots = '';
-                for(let h=0; h<3; h++) dots += `<span class="hp-dot ${h < p.hp ? 'active' : ''}"></span>`;
-
-                card.innerHTML = `
-                    <img src="${p.avatar}" class="card-avatar">
-                    <div style="flex-grow:1">
-                        <div style="font-weight:bold">${p.name} ${p.id===myId?'(YOU)':''}</div>
-                        <div>${dots}</div>
-                    </div>
-                `;
-                // Direct Clicks
-                card.onclick = () => clickPlayer(p.id);
-                list.appendChild(card);
-
-                // Arena
-                if (!p.dead) {
-                    const angle = (i * (360 / players.length)) - 90;
-                    const rad = angle * (Math.PI / 180);
-                    const x = Math.cos(rad) * radius;
-                    const y = Math.sin(rad) * radius;
-
-                    const av = document.createElement('div');
-                    av.className = 'arena-player';
-                    if (i === turnIndex) av.classList.add('active-turn');
-                    if (selectedTarget === p.id) av.classList.add('selected');
-                    if (phase==='IDLE' && isMyTurn && p.id !== myId) av.classList.add('clickable');
-                    
-                    av.style.left = `calc(50% + ${x}px)`;
-                    av.style.top = `calc(50% + ${y}px)`;
-                    av.style.marginLeft = "-60px";
-                    av.style.marginTop = "-70px";
-                    av.id = `av-${p.id}`;
-
-                    av.innerHTML = `
-                        <img src="${p.avatar}" class="arena-avatar">
-                        <div class="arena-name">${p.name}</div>
-                    `;
-                    // Direct Clicks
-                    av.onclick = () => clickPlayer(p.id);
-                    arena.appendChild(av);
-                }
-            });
-        }
-
-        function showFloat(id, text, color) {
-            const el = document.getElementById(`av-${id}`);
-            if (!el) return;
-            const f = document.createElement('div');
-            f.className = 'floater';
-            f.innerText = text;
-            f.style.color = color;
-            el.appendChild(f);
-            setTimeout(() => f.remove(), 2000);
-        }
-
-        window.addEventListener('resize', render);
-
-    </script>
-</body>
-</html>
