@@ -3,68 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Straddle Royale V3</title>
+    <title>Straddle Royale V4</title>
     
-    <!-- Primary Library -->
+    <!-- MQTT Network -->
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-    <!-- Backup Library (in case unpkg is blocked) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
-
+    <!-- Confetti Cannon -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Anton&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     
     <style>
-        :root { --bg: #1a1a2e; --panel: #16213e; --red: #e94560; --yellow: #f1c40f; --green: #2ecc71; --white: #fff; }
-        * { box-sizing: border-box; user-select: none; }
-        body { margin: 0; height: 100vh; background: var(--bg); color: var(--white); font-family: 'Roboto', sans-serif; display: flex; overflow: hidden; }
+        :root {
+            --bg-dark: #1a1a2e;
+            --sidebar-bg: #16213e;
+            --highlight: #e94560;
+            --accent: #f1c40f;
+            --text-main: #ffffff;
+        }
 
-        /* SIDEBAR */
-        #sidebar { width: 350px; background: var(--panel); border-right: 2px solid #000; display: flex; flex-direction: column; padding: 20px; z-index: 20; box-shadow: 5px 0 20px #000; }
-        .logo { font-family: 'Anton', sans-serif; font-size: 42px; color: var(--red); line-height: 1; margin-bottom: 20px; text-shadow: 2px 2px #000; }
+        * { box-sizing: border-box; user-select: none; }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Roboto', sans-serif;
+            overflow: hidden;
+            display: flex;
+        }
+
+        /* --- SIDEBAR --- */
+        #sidebar {
+            width: 350px;
+            background: var(--sidebar-bg);
+            border-right: 2px solid #000;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            z-index: 20;
+            box-shadow: 5px 0 20px #000;
+        }
+
+        .logo {
+            font-family: 'Anton', sans-serif;
+            font-size: 42px;
+            color: var(--highlight);
+            text-transform: uppercase;
+            line-height: 1;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        /* COPYABLE CODE BOX */
+        .code-box {
+            background: #000;
+            border: 2px dashed var(--accent);
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            position: relative;
+        }
+        .code-box:hover { background: #222; transform: scale(1.02); }
+        .code-box:active { background: #333; transform: scale(0.98); }
         
-        .code-box { background: #000; border: 2px dashed var(--yellow); padding: 15px; text-align: center; margin-bottom: 20px; border-radius: 8px; }
-        .code-val { font-family: 'Anton', sans-serif; font-size: 48px; color: var(--yellow); margin-top: 5px; letter-spacing: 3px; }
-        
-        #player-list { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .code-label { color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+        .code-val { 
+            font-family: 'Anton', sans-serif; 
+            font-size: 48px; 
+            color: var(--accent); 
+            margin-top: 5px; 
+            letter-spacing: 3px; 
+        }
+        .copy-hint { font-size: 10px; color: #555; margin-top: 5px; }
+
+        #player-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* INSTRUCTIONS BUTTON */
+        .btn-help {
+            margin-top: 20px;
+            background: transparent;
+            border: 1px solid #555;
+            color: #aaa;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 4px;
+        }
+        .btn-help:hover { background: #333; color: white; border-color: white; }
 
         /* CARDS */
-        .player-card { background: #252f4e; border-radius: 8px; padding: 10px; display: flex; align-items: center; gap: 12px; border: 3px solid transparent; transition: 0.1s; }
+        .player-card {
+            background: #252f4e;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 3px solid transparent;
+            transition: 0.1s;
+        }
         .player-card.clickable { cursor: pointer; }
         .player-card.clickable:hover { background: #3a4b7c; border-color: rgba(255,255,255,0.3); }
-        .player-card.active { border-color: var(--green); background: #1e3a2a; }
-        .player-card.target { border-color: var(--red) !important; background: #5c1818 !important; }
-        .player-card.dead { opacity: 0.4; filter: grayscale(1); }
+        .player-card.active { border-color: #2ecc71; background: #1e3a2a; }
+        .player-card.target { border-color: var(--highlight) !important; background: #5c1818 !important; }
+        .player-card.dead { opacity: 0.4; filter: grayscale(1); pointer-events: none; }
 
         .avatar { width: 50px; height: 50px; border-radius: 8px; background: #000; border: 2px solid #000; pointer-events: none; }
         .hp-dot { width: 12px; height: 12px; background: #333; border-radius: 50%; border: 1px solid #000; display: inline-block; margin-right: 4px; }
-        .hp-dot.on { background: var(--green); box-shadow: 0 0 5px var(--green); }
+        .hp-dot.on { background: #2ecc71; box-shadow: 0 0 5px #2ecc71; }
 
         /* ARENA */
-        #arena { flex-grow: 1; position: relative; background: radial-gradient(circle, #232342 0%, #1a1a2e 80%); display: flex; justify-content: center; align-items: center; }
+        #arena {
+            flex-grow: 1;
+            position: relative;
+            background: radial-gradient(circle, #232342 0%, #1a1a2e 80%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
         
-        #top-bar { position: absolute; top: 20px; background: rgba(0,0,0,0.7); padding: 10px 30px; border-radius: 30px; font-weight: bold; border: 1px solid #555; font-size: 1.2rem; z-index: 10; }
+        #top-bar {
+            position: absolute;
+            top: 20px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px 30px;
+            border-radius: 30px;
+            font-weight: bold;
+            border: 1px solid #555;
+            font-size: 1.2rem;
+            z-index: 10;
+        }
 
-        .arena-p { position: absolute; display: flex; flex-direction: column; align-items: center; width: 120px; transition: transform 0.5s; z-index: 5; margin-left: -60px; margin-top: -60px; }
-        .arena-av { width: 100px; height: 100px; border-radius: 50%; border: 4px solid #333; background: #000; transition: 0.2s; pointer-events: none; }
+        .arena-p {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 120px;
+            transition: transform 0.5s;
+            z-index: 5;
+            margin-left: -60px;
+            margin-top: -60px;
+        }
+        .arena-av {
+            width: 100px; height: 100px;
+            border-radius: 50%;
+            border: 4px solid #333;
+            background: #000;
+            transition: 0.2s;
+            pointer-events: none;
+        }
         
         .arena-p.clickable { cursor: pointer; }
         .arena-p.clickable:hover .arena-av { transform: scale(1.1); border-color: #fff; }
-        .arena-p.active .arena-av { border-color: var(--green); box-shadow: 0 0 25px var(--green); transform: scale(1.1); }
-        .arena-p.target .arena-av { border-color: var(--red); box-shadow: 0 0 35px var(--red); animation: shake 0.5s infinite; }
-        
-        .arena-name { background: rgba(0,0,0,0.8); padding: 4px 10px; border-radius: 4px; margin-top: 5px; font-weight: bold; pointer-events: none; }
+        .arena-p.active .arena-av { border-color: #2ecc71; box-shadow: 0 0 25px #2ecc71; transform: scale(1.1); }
+        .arena-p.target .arena-av { border-color: var(--highlight); box-shadow: 0 0 35px var(--highlight); animation: shake 0.5s infinite; }
+        .arena-p.dead { opacity: 0; transition: opacity 1s; pointer-events: none; }
+
+        .arena-name {
+            background: rgba(0,0,0,0.8);
+            padding: 4px 10px;
+            border-radius: 4px;
+            margin-top: 5px;
+            font-weight: bold;
+            pointer-events: none;
+        }
 
         /* CONTROLS */
         #action-area { position: absolute; bottom: 40px; right: 40px; z-index: 50; }
-        .btn-big { width: 90px; height: 90px; border-radius: 50%; border: 4px solid #fff; background: var(--red); color: #fff; font-size: 40px; font-weight: bold; cursor: pointer; box-shadow: 0 5px 20px #000; transition: 0.2s; }
+        .btn-big {
+            width: 90px; height: 90px;
+            border-radius: 50%;
+            border: 4px solid #fff;
+            background: var(--highlight);
+            color: #fff;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 5px 20px #000;
+            transition: 0.2s;
+        }
         .btn-big:hover { transform: scale(1.1); background: #ff6b81; }
         .btn-big:disabled { background: #555; border-color: #777; opacity: 0; pointer-events: none; }
 
         /* MODALS */
-        .modal-wrap { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-        .modal { background: #fff; color: #000; padding: 40px; border-radius: 8px; width: 400px; text-align: center; }
+        .modal-wrap {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000;
+        }
+        .modal {
+            background: #fff; color: #000; padding: 40px;
+            border-radius: 8px; width: 450px; text-align: center;
+            position: relative;
+        }
+        .modal h2 { margin-top: 0; }
+        .close-modal { position: absolute; top: 10px; right: 15px; cursor: pointer; font-size: 24px; font-weight: bold; }
+        
+        .rules-list { text-align: left; margin: 20px 0; line-height: 1.6; color: #333; }
+        .rules-list li { margin-bottom: 10px; }
+
         input { width: 100%; padding: 15px; margin: 10px 0; border: 2px solid #000; font-size: 1.2rem; text-align: center; font-weight: bold; text-transform: uppercase; }
         .btn-main { width: 100%; padding: 15px; background: #000; color: #fff; font-weight: bold; cursor: pointer; font-size: 1.2rem; margin-top: 10px; }
-        .btn-main:hover { background: var(--red); }
+        .btn-main:hover { background: var(--highlight); }
 
         #console { position: absolute; bottom: 0; left: 0; width: 100%; height: 25px; background: #000; color: #0f0; font-family: monospace; font-size: 12px; padding: 4px; opacity: 0.6; pointer-events: none; z-index: 999; }
         
@@ -78,32 +230,37 @@
 <body>
 
     <div id="sidebar">
-        <div class="logo">STRADDLE<br>ROYALE V2</div>
-        <div class="code-box">
-            <div style="color:#888; font-size:12px;">ROOM CODE</div>
+        <div class="logo">STRADDLE<br>ROYALE V4</div>
+        
+        <div class="code-box" onclick="copyRoomCode()">
+            <div class="code-label">ROOM CODE (CLICK TO COPY)</div>
             <div class="code-val" id="room-disp">----</div>
+            <div class="copy-hint" id="copy-msg"></div>
         </div>
+
         <div id="player-list"></div>
+        
+        <button class="btn-help" onclick="toggleHelp()">❓ HOW TO PLAY</button>
     </div>
 
     <div id="arena">
-        <div id="top-bar">CONNECTING...</div>
+        <div id="top-bar">INITIALIZING...</div>
         <div id="arena-layer"></div>
         <div id="action-area">
             <button id="btn-act" class="btn-big" disabled onclick="confirmAction()">✓</button>
         </div>
     </div>
 
-    <div id="console">System Ready. V2 Debug Mode.</div>
+    <div id="console">System Ready. V4 Stable.</div>
 
     <!-- SETUP -->
     <div id="setup" class="modal-wrap">
         <div class="modal">
-            <h1 style="margin:0 0 20px 0; font-family:'Anton'; font-size:40px;">WELCOME V2</h1>
+            <h1 style="margin:0 0 20px 0; font-family:'Anton'; font-size:40px;">WELCOME</h1>
             <input type="text" id="my-name" placeholder="NAME" maxlength="10">
             <input type="text" id="my-av" placeholder="AVATAR URL (OPTIONAL)">
-            <button id="btn-host-game" class="btn-main" onclick="start('HOST')">HOST GAME</button>
-            <button id="btn-join-game" class="btn-main" style="background:#555" onclick="showJoin()">JOIN GAME</button>
+            <button class="btn-main" onclick="start('HOST')">HOST GAME</button>
+            <button class="btn-main" style="background:#555" onclick="showJoin()">JOIN GAME</button>
         </div>
     </div>
 
@@ -116,18 +273,27 @@
         </div>
     </div>
 
+    <!-- HELP MODAL -->
+    <div id="help-modal" class="modal-wrap hidden">
+        <div class="modal">
+            <div class="close-modal" onclick="toggleHelp()">×</div>
+            <h2>HOW TO PLAY</h2>
+            <ul class="rules-list">
+                <li><strong>1. Lobby:</strong> The Host waits for players to join, then clicks <strong>Start</strong>.</li>
+                <li><strong>2. Turns:</strong> Players take turns. The current turn is highlighted in <strong>Green</strong>.</li>
+                <li><strong>3. Attack:</strong> Click an opponent's card or avatar to target them (Red Ring).</li>
+                <li><strong>4. Confirm:</strong> Click the big <strong>Check Button</strong> to fire.</li>
+                <li><strong>5. Dice:</strong> The game rolls a D20 for Attack vs Defense. High roll wins.</li>
+                <li><strong>6. Win:</strong> Last warrior standing wins the Straddle Royale!</li>
+            </ul>
+            <button class="btn-main" onclick="toggleHelp()">GOT IT</button>
+        </div>
+    </div>
+
     <script>
-        // --- ERROR TRAPPING ---
-        window.onerror = function(msg, url, line) {
-            alert("Error: " + msg + "\nLine: " + line);
-            document.getElementById('console').innerText = "CRITICAL ERROR: " + msg;
-        };
-
-        // --- CONFIG ---
         const BROKER = 'wss://broker.emqx.io:8084/mqtt';
-        const TOPIC_ROOT = 'straddle-v12-debug/';
+        const TOPIC_ROOT = 'straddle-v4-final/';
 
-        // --- STATE ---
         let client;
         let myId = Math.random().toString(36).substr(2, 8);
         let myName = "Player";
@@ -135,30 +301,29 @@
         let roomCode = "";
         let isHost = false;
 
-        // Synced State
         let players = [];
         let turnIndex = 0;
         let phase = "LOBBY";
         let targetedId = null; 
 
-        // Local State
         let lastRenderState = ""; 
         let heartbeatTimer;
         let retryTimer;
 
         function log(t) { document.getElementById('console').innerText = `> ${t}`; console.log(t); }
         function showJoin() { document.getElementById('setup').classList.add('hidden'); document.getElementById('join').classList.remove('hidden'); }
+        function toggleHelp() { document.getElementById('help-modal').classList.toggle('hidden'); }
+
+        function copyRoomCode() {
+            if (!roomCode || roomCode === "----") return;
+            navigator.clipboard.writeText(roomCode).then(() => {
+                const msg = document.getElementById('copy-msg');
+                msg.innerText = "COPIED TO CLIPBOARD!";
+                setTimeout(() => msg.innerText = "", 2000);
+            });
+        }
 
         function start(mode) {
-            // Visual Feedback immediately
-            if(mode === 'HOST') document.getElementById('btn-host-game').innerText = "INITIALIZING...";
-            
-            // Check if Library Loaded
-            if (typeof mqtt === 'undefined') {
-                alert("Network Library failed to load. Check your AdBlocker or Internet Connection.");
-                return;
-            }
-
             myName = document.getElementById('my-name').value.trim() || "Warrior";
             myAvatar = document.getElementById('my-av').value.trim() || `https://api.dicebear.com/9.x/bottts/svg?seed=${myId}`;
 
@@ -179,20 +344,14 @@
         }
 
         function connect() {
-            log("Connecting to MQTT Broker...");
-            try {
-                client = mqtt.connect(BROKER);
-            } catch(e) {
-                alert("Connection Failed: " + e);
-                return;
-            }
-
+            log("Connecting...");
+            client = mqtt.connect(BROKER);
             client.on('connect', () => {
                 log("Connected. Subscribing...");
                 client.subscribe(TOPIC_ROOT + roomCode);
                 
                 if (isHost) {
-                    heartbeatTimer = setInterval(sendState, 1000); 
+                    heartbeatTimer = setInterval(sendState, 1000);
                     render();
                 } else {
                     send({ type: 'JOIN', id: myId, name: myName, avatar: myAvatar });
@@ -214,15 +373,11 @@
                     if (d.sender !== myId) handle(d);
                 } catch (e) {}
             });
-            
-            client.on('error', (err) => {
-                log("Net Error: " + err);
-            });
         }
 
         function send(d) {
             d.sender = myId;
-            if(client) client.publish(TOPIC_ROOT + roomCode, JSON.stringify(d));
+            client.publish(TOPIC_ROOT + roomCode, JSON.stringify(d));
         }
 
         function handle(d) {
@@ -231,7 +386,7 @@
                     if (!players.find(p => p.id === d.id)) {
                         players.push({ id: d.id, name: d.name, avatar: d.avatar, hp: 3, dead: false });
                         log(`${d.name} Joined`);
-                        sendState(); 
+                        sendState();
                     }
                 } 
                 else if (d.type === 'TARGET') {
@@ -244,10 +399,15 @@
             } else {
                 if (d.type === 'STATE') {
                     players = d.players;
+                    if (turnIndex !== d.turnIndex) targetedId = null;
                     turnIndex = d.turnIndex;
                     phase = d.phase;
-                    targetedId = d.targetedId;
-                    render(); 
+                    
+                    // Sync visual target only if we aren't the one setting it locally
+                    if (players[turnIndex] && players[turnIndex].id !== myId) {
+                        targetedId = d.targetedId;
+                    }
+                    render();
                 }
                 else if (d.type === 'FX') {
                     showFloat(d.targetId, d.text, d.color);
@@ -260,11 +420,13 @@
             render();
         }
 
+        // --- ACTION LOGIC ---
+
         function clickPlayer(id) {
             if (phase !== 'IDLE') return;
             const turnP = players[turnIndex];
-            if (!turnP || turnP.id !== myId) return; 
-            if (id === myId) return; 
+            if (!turnP || turnP.id !== myId) return;
+            if (id === myId) return;
             
             const t = players.find(p => p.id === id);
             if (!t || t.dead) return;
@@ -274,7 +436,7 @@
             if (isHost) sendState();
             else send({ type: 'TARGET', targetId: id });
             
-            render(); 
+            render();
         }
 
         function confirmAction() {
@@ -301,10 +463,10 @@
 
         function resolveCombat(attId, defId) {
             const current = players[turnIndex];
-            if (current.id !== attId) return; 
+            if (current.id !== attId) return;
 
             phase = 'ROLLING';
-            targetedId = defId; 
+            targetedId = defId;
             sendState();
 
             const r1 = Math.floor(Math.random()*20)+1;
@@ -327,9 +489,12 @@
             }, 1000);
 
             setTimeout(() => {
-                targetedId = null; 
+                targetedId = null;
                 const alive = players.filter(p => !p.dead);
-                if (alive.length === 1) phase = 'GAMEOVER';
+                if (alive.length === 1) {
+                    phase = 'GAMEOVER';
+                    launchConfetti(); // HOST CONFETTI
+                }
                 else {
                     let i=0;
                     do { turnIndex = (turnIndex+1)%players.length; i++; }
@@ -340,8 +505,17 @@
             }, 3000);
         }
 
+        function launchConfetti() {
+            var duration = 3000;
+            var end = Date.now() + duration;
+            (function frame() {
+                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 } });
+                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 } });
+                if (Date.now() < end) requestAnimationFrame(frame);
+            }());
+        }
+
         function render() {
-            // Smart Render Check
             const currentState = JSON.stringify({ players, turnIndex, phase, targetedId, myId });
             if (currentState === lastRenderState) return; 
             lastRenderState = currentState;
@@ -369,6 +543,8 @@
                 btn.disabled = false;
                 btn.style.opacity = 1;
                 btn.onclick = () => location.reload();
+                // CLIENT CONFETTI TRIGGER (If rendering this phase for first time)
+                launchConfetti(); 
             } else if (phase === 'ROLLING') {
                 bar.innerText = "ROLLING DICE...";
                 btn.disabled = true;
