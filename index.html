@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Straddle Royale V5</title>
+    <title>Straddle Royale V5.1</title>
+    
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Anton&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
@@ -22,7 +23,6 @@
         body {
             margin: 0;
             height: 100vh;
-            /* --- [2] BACKGROUND IMAGE HERE --- */
             background-image: url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop');
             background-size: cover;
             background-position: center;
@@ -32,21 +32,15 @@
             display: flex;
         }
 
-        /* Dark overlay to make text readable over image */
         body::before {
             content: ""; position: absolute; top:0; left:0; width:100%; height:100%;
             background: var(--bg-overlay); z-index: -1;
         }
 
-        /* SIDEBAR */
         #sidebar {
-            width: 350px;
-            background: var(--panel-bg);
-            border-right: 2px solid #000;
-            display: flex; flex-direction: column;
-            padding: 20px; z-index: 20;
-            box-shadow: 5px 0 20px #000;
-            backdrop-filter: blur(5px);
+            width: 350px; background: var(--panel-bg); border-right: 2px solid #000;
+            display: flex; flex-direction: column; padding: 20px; z-index: 20;
+            box-shadow: 5px 0 20px #000; backdrop-filter: blur(5px);
         }
 
         .logo { font-family: 'Anton', sans-serif; font-size: 42px; color: var(--highlight); line-height: 1; margin-bottom: 20px; text-shadow: 2px 2px 0 #000; }
@@ -60,7 +54,6 @@
 
         #player-list { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
 
-        /* CARDS */
         .player-card {
             background: rgba(40, 50, 80, 0.6); border-radius: 8px; padding: 10px;
             display: flex; align-items: center; gap: 12px; border: 3px solid transparent; transition: 0.1s;
@@ -81,7 +74,6 @@
         .status-badge { font-size: 10px; padding: 2px 5px; border-radius: 4px; background: #a29bfe; color: #000; font-weight: bold; display: none; }
         .stunned .status-badge { display: inline-block; }
 
-        /* ARENA */
         #arena { flex-grow: 1; position: relative; display: flex; justify-content: center; align-items: center; }
         
         #top-bar {
@@ -91,7 +83,6 @@
             font-size: 1.2rem; z-index: 10;
         }
 
-        /* ROLL TEXT OVERLAY */
         #roll-display {
             position: absolute; top: 15%; width: 80%; text-align: center;
             font-family: 'Anton', sans-serif; font-size: 48px; color: var(--accent);
@@ -119,7 +110,6 @@
             margin-top: 5px; font-weight: bold; pointer-events: none;
         }
 
-        /* CONTROLS */
         #action-area { position: absolute; bottom: 40px; right: 40px; z-index: 50; }
         .btn-big {
             width: 90px; height: 90px; border-radius: 50%; border: 4px solid #fff;
@@ -144,19 +134,19 @@
         @keyframes float { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-80px); opacity: 0; } }
         
         .hidden { display: none !important; }
+        .rules-list { text-align: left; margin: 20px 0; line-height: 1.5; }
+        .rules-list li { margin-bottom: 8px; }
     </style>
 </head>
 <body>
 
     <div id="sidebar">
         <div class="logo">STRADDLE<br>ROYALE V5</div>
-        
         <div class="code-box" onclick="copyRoomCode()">
-            <div style="color:#888; font-size:12px;">ROOM CODE (CLICK TO COPY)</div>
+            <div style="color:#888; font-size:12px;">ROOM CODE</div>
             <div class="code-val" id="room-disp">----</div>
             <div class="copy-hint" id="copy-msg"></div>
         </div>
-
         <div id="player-list"></div>
         <button class="btn-main" style="background:transparent; border:1px solid #555; color:#aaa; margin-top:auto" onclick="toggleHelp()">RULES</button>
     </div>
@@ -170,7 +160,7 @@
         </div>
     </div>
 
-    <div id="console">System Ready. D100 Logic Loaded.</div>
+    <div id="console">System Ready. V5.1 Connection Fix.</div>
 
     <!-- SETUP -->
     <div id="setup" class="modal-wrap">
@@ -195,27 +185,28 @@
     <div id="help" class="modal-wrap hidden">
         <div class="modal">
             <div class="close-modal" onclick="toggleHelp()">×</div>
-            <h2>RULES OF ENGAGEMENT</h2>
-            <div style="text-align:left; line-height:1.5; max-height:300px; overflow-y:auto; font-size:14px;">
-                <p><strong>1-40 (Positive):</strong> Target loses 1 Point.</p>
-                <p><strong>41-70 (Backfire):</strong> You lose 1 Point.</p>
-                <p><strong>71-80 (No Effect):</strong> Nothing happens.</p>
-                <p><strong>81-85 (Enhanced):</strong> Target loses 2 Points.</p>
-                <p><strong>86-90 (Enhanced Self):</strong> You lose 2 Points.</p>
-                <p><strong>91-95 (Mutual):</strong> BOTH lose 2 Points.</p>
-                <p><strong>96 (Stun Target):</strong> Target -1 Point + Skips Turn.</p>
-                <p><strong>97 (Stun Self):</strong> You -1 Point + Skip Turn.</p>
-                <p><strong>98 (Drain):</strong> You HEAL 1 Point.</p>
-                <p><strong>99 (Steal):</strong> Target -1 Point, You +1 Point.</p>
-                <p><strong>100 (Adrenaline):</strong> Target -1 Point, YOU GO AGAIN!</p>
-            </div>
+            <h2>RULES</h2>
+            <ul class="rules-list">
+                <li><strong>1-40:</strong> Target -1 HP</li>
+                <li><strong>41-70:</strong> You -1 HP (Backfire)</li>
+                <li><strong>71-80:</strong> Miss</li>
+                <li><strong>81-85:</strong> Target -2 HP</li>
+                <li><strong>86-90:</strong> You -2 HP</li>
+                <li><strong>91-95:</strong> BOTH -2 HP</li>
+                <li><strong>96:</strong> Stun Target</li>
+                <li><strong>97:</strong> Stun Self</li>
+                <li><strong>98:</strong> Heal Self</li>
+                <li><strong>99:</strong> Steal HP</li>
+                <li><strong>100:</strong> Adrenaline (Hit + Extra Turn)</li>
+            </ul>
             <button class="btn-main" onclick="toggleHelp()">GOT IT</button>
         </div>
     </div>
 
     <script>
+        // Use a simplified, version-agnostic topic to ensure compatibility
         const BROKER = 'wss://broker.emqx.io:8084/mqtt';
-        const TOPIC_ROOT = 'straddle-v5-advanced/';
+        const TOPIC_PREFIX = 'straddle-live-game/';
 
         let client;
         let myId = Math.random().toString(36).substr(2, 8);
@@ -267,11 +258,11 @@
         }
 
         function connect() {
-            log("Connecting...");
+            log("Connecting to Network...");
             client = mqtt.connect(BROKER);
             client.on('connect', () => {
-                log("Connected. Subscribing...");
-                client.subscribe(TOPIC_ROOT + roomCode);
+                log(`Connected. Channel: ${roomCode}`);
+                client.subscribe(TOPIC_PREFIX + roomCode);
                 
                 if (isHost) {
                     heartbeatTimer = setInterval(sendState, 1000);
@@ -280,11 +271,11 @@
                     send({ type: 'JOIN', id: myId, name: myName, avatar: myAvatar });
                     retryTimer = setInterval(() => {
                         if (!players.find(p => p.id === myId)) {
-                            log("Knocking...");
+                            log("Knocking on door...");
                             send({ type: 'JOIN', id: myId, name: myName, avatar: myAvatar });
                         } else {
                             clearInterval(retryTimer);
-                            log("Joined!");
+                            log("Joined Room!");
                         }
                     }, 2000);
                 }
@@ -300,7 +291,7 @@
 
         function send(d) {
             d.sender = myId;
-            client.publish(TOPIC_ROOT + roomCode, JSON.stringify(d));
+            client.publish(TOPIC_PREFIX + roomCode, JSON.stringify(d));
         }
 
         function handle(d) {
@@ -308,7 +299,7 @@
                 if (d.type === 'JOIN') {
                     if (!players.find(p => p.id === d.id)) {
                         players.push({ id: d.id, name: d.name, avatar: d.avatar, hp: 3, maxHp: 3, dead: false, stunned: false });
-                        log(`${d.name} Joined`);
+                        log(`${d.name} Added`);
                         sendState();
                     }
                 } 
@@ -342,67 +333,22 @@
             render();
         }
 
-        // --- [1] D100 LOGIC TABLE ---
+        // --- D100 LOGIC ---
         function getOutcome(roll, attName, defName) {
             const r = { dmgDef: 0, dmgAtt: 0, healAtt: 0, stunDef: false, stunAtt: false, extraTurn: false, title: "", sub: "" };
-            
             const subReplace = (text) => text.replace(/\$1/g, defName).replace(/{user}/g, attName);
 
-            if (roll <= 40) {
-                r.title = "POSITIVE HIT";
-                r.sub = subReplace("$1 loses a point!");
-                r.dmgDef = 1;
-            } 
-            else if (roll <= 70) {
-                r.title = "BACKFIRE";
-                r.sub = subReplace("{user} loses a point!");
-                r.dmgAtt = 1;
-            }
-            else if (roll <= 80) {
-                r.title = "NO EFFECT";
-                r.sub = "Nothing happens!";
-            }
-            else if (roll <= 85) {
-                r.title = "ENHANCED HIT";
-                r.sub = subReplace("$1 loses TWO points!");
-                r.dmgDef = 2;
-            }
-            else if (roll <= 90) {
-                r.title = "ENHANCED BACKFIRE";
-                r.sub = subReplace("{user} loses TWO points!");
-                r.dmgAtt = 2;
-            }
-            else if (roll <= 95) {
-                r.title = "MUTUAL DESTRUCTION";
-                r.sub = "BOTH lose TWO points!";
-                r.dmgDef = 2; r.dmgAtt = 2;
-            }
-            else if (roll === 96) {
-                r.title = "EXTREME: STUN";
-                r.sub = subReplace("$1 loses 1 point & turn!");
-                r.dmgDef = 1; r.stunDef = true;
-            }
-            else if (roll === 97) {
-                r.title = "EXTREME: SELF STUN";
-                r.sub = subReplace("{user} loses 1 point & turn!");
-                r.dmgAtt = 1; r.stunAtt = true;
-            }
-            else if (roll === 98) {
-                r.title = "EXTREME: DRAIN";
-                r.sub = subReplace("{user} GAINS a point!");
-                r.healAtt = 1;
-            }
-            else if (roll === 99) {
-                r.title = "EXTREME: STEAL";
-                r.sub = "Stole HP from target!";
-                r.dmgDef = 1; r.healAtt = 1;
-            }
-            else if (roll === 100) {
-                r.title = "ADRENALINE";
-                r.sub = "HIT + GO AGAIN!";
-                r.dmgDef = 1; r.extraTurn = true;
-            }
-            
+            if (roll <= 40) { r.title = "POSITIVE HIT"; r.sub = subReplace("$1 loses a point!"); r.dmgDef = 1; } 
+            else if (roll <= 70) { r.title = "BACKFIRE"; r.sub = subReplace("{user} loses a point!"); r.dmgAtt = 1; }
+            else if (roll <= 80) { r.title = "NO EFFECT"; r.sub = "Nothing happens!"; }
+            else if (roll <= 85) { r.title = "ENHANCED HIT"; r.sub = subReplace("$1 loses TWO points!"); r.dmgDef = 2; }
+            else if (roll <= 90) { r.title = "ENHANCED BACKFIRE"; r.sub = subReplace("{user} loses TWO points!"); r.dmgAtt = 2; }
+            else if (roll <= 95) { r.title = "MUTUAL DESTRUCTION"; r.sub = "BOTH lose TWO points!"; r.dmgDef = 2; r.dmgAtt = 2; }
+            else if (roll === 96) { r.title = "STUN"; r.sub = subReplace("$1 loses 1 point & turn!"); r.dmgDef = 1; r.stunDef = true; }
+            else if (roll === 97) { r.title = "SELF STUN"; r.sub = subReplace("{user} loses 1 point & turn!"); r.dmgAtt = 1; r.stunAtt = true; }
+            else if (roll === 98) { r.title = "DRAIN"; r.sub = subReplace("{user} GAINS a point!"); r.healAtt = 1; }
+            else if (roll === 99) { r.title = "STEAL"; r.sub = "Stole HP from target!"; r.dmgDef = 1; r.healAtt = 1; }
+            else if (roll === 100) { r.title = "ADRENALINE"; r.sub = "HIT + GO AGAIN!"; r.dmgDef = 1; r.extraTurn = true; }
             return r;
         }
 
@@ -419,10 +365,9 @@
             const outcome = getOutcome(roll, att.name, def.name);
 
             setTimeout(() => {
-                // Apply Logic
                 if (outcome.dmgDef) { def.hp -= outcome.dmgDef; if(def.hp < 0) def.hp = 0; }
                 if (outcome.dmgAtt) { att.hp -= outcome.dmgAtt; if(att.hp < 0) att.hp = 0; }
-                if (outcome.healAtt) { att.hp += outcome.healAtt; if(att.hp > 3) att.hp = 3; } // Max 3 HP
+                if (outcome.healAtt) { att.hp += outcome.healAtt; if(att.hp > 3) att.hp = 3; }
                 
                 if (def.hp === 0) def.dead = true;
                 if (att.hp === 0) att.dead = true;
@@ -430,11 +375,9 @@
                 if (outcome.stunDef) def.stunned = true;
                 if (outcome.stunAtt) att.stunned = true;
 
-                // Feedback
                 send({ type: 'FX', targetId: defId, text: outcome.title, color: '#e94560', title: `${roll}: ${outcome.title}`, sub: outcome.sub });
                 showFloat(defId, outcome.title, '#e94560');
                 showBigMsg(`${roll}: ${outcome.title}`, outcome.sub);
-
             }, 1000);
 
             setTimeout(() => {
@@ -445,28 +388,17 @@
                     if(alive.length === 1) launchConfetti();
                 }
                 else {
-                    // Next Turn Logic
                     if (!outcome.extraTurn) {
                         let i = 0;
                         do {
                             turnIndex = (turnIndex + 1) % players.length;
-                            
-                            // Handle Stun removal
                             const p = players[turnIndex];
-                            if (!p.dead && p.stunned) {
-                                p.stunned = false; // Remove stun
-                                // Skip this turn? Yes.
-                                // But we need to visually show they skipped.
-                                // For simplicity in V5, we just skip silently or loop again
-                                // To keep it simple: Loop again immediately
-                            } else {
-                                // Found valid player
-                            }
+                            if (!p.dead && p.stunned) { p.stunned = false; } 
+                            else { /* Valid */ }
                             i++;
                         } while ((players[turnIndex].dead || players[turnIndex].stunned) && i < 20);
                         
-                        // Clear stun if we skipped them
-                        players.forEach((p, idx) => { if(idx !== turnIndex && !p.dead) p.stunned = false; }); // Simple clearing
+                        players.forEach((p, idx) => { if(idx !== turnIndex && !p.dead) p.stunned = false; });
                     }
                     phase = 'IDLE';
                 }
