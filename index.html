@@ -3,19 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Straddle Royale V4</title>
-    
-    <!-- MQTT Network -->
+    <title>Straddle Royale V5</title>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-    <!-- Confetti Cannon -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Anton&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     
     <style>
         :root {
-            --bg-dark: #1a1a2e;
-            --sidebar-bg: #16213e;
+            --bg-overlay: rgba(10, 10, 15, 0.85);
+            --panel-bg: rgba(20, 25, 40, 0.95);
             --highlight: #e94560;
             --accent: #f1c40f;
             --text-main: #ffffff;
@@ -26,194 +22,117 @@
         body {
             margin: 0;
             height: 100vh;
-            background-color: var(--bg-dark);
+            /* --- [2] BACKGROUND IMAGE HERE --- */
+            background-image: url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
             color: var(--text-main);
             font-family: 'Roboto', sans-serif;
             overflow: hidden;
             display: flex;
         }
 
-        /* --- SIDEBAR --- */
+        /* Dark overlay to make text readable over image */
+        body::before {
+            content: ""; position: absolute; top:0; left:0; width:100%; height:100%;
+            background: var(--bg-overlay); z-index: -1;
+        }
+
+        /* SIDEBAR */
         #sidebar {
             width: 350px;
-            background: var(--sidebar-bg);
+            background: var(--panel-bg);
             border-right: 2px solid #000;
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-            z-index: 20;
+            display: flex; flex-direction: column;
+            padding: 20px; z-index: 20;
             box-shadow: 5px 0 20px #000;
+            backdrop-filter: blur(5px);
         }
 
-        .logo {
-            font-family: 'Anton', sans-serif;
-            font-size: 42px;
-            color: var(--highlight);
-            text-transform: uppercase;
-            line-height: 1;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 0 #000;
-        }
-
-        /* COPYABLE CODE BOX */
-        .code-box {
-            background: #000;
-            border: 2px dashed var(--accent);
-            padding: 15px;
-            text-align: center;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: 0.2s;
-            position: relative;
-        }
-        .code-box:hover { background: #222; transform: scale(1.02); }
-        .code-box:active { background: #333; transform: scale(0.98); }
+        .logo { font-family: 'Anton', sans-serif; font-size: 42px; color: var(--highlight); line-height: 1; margin-bottom: 20px; text-shadow: 2px 2px 0 #000; }
         
-        .code-label { color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
-        .code-val { 
-            font-family: 'Anton', sans-serif; 
-            font-size: 48px; 
-            color: var(--accent); 
-            margin-top: 5px; 
-            letter-spacing: 3px; 
+        .code-box {
+            background: #000; border: 2px dashed var(--accent); padding: 15px;
+            text-align: center; margin-bottom: 20px; border-radius: 8px; cursor: pointer;
         }
-        .copy-hint { font-size: 10px; color: #555; margin-top: 5px; }
+        .code-val { font-family: 'Anton', sans-serif; font-size: 48px; color: var(--accent); margin-top: 5px; letter-spacing: 3px; }
+        .copy-hint { font-size: 10px; color: #777; margin-top: 5px; }
 
-        #player-list {
-            flex-grow: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        /* INSTRUCTIONS BUTTON */
-        .btn-help {
-            margin-top: 20px;
-            background: transparent;
-            border: 1px solid #555;
-            color: #aaa;
-            padding: 10px;
-            cursor: pointer;
-            font-size: 14px;
-            border-radius: 4px;
-        }
-        .btn-help:hover { background: #333; color: white; border-color: white; }
+        #player-list { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
 
         /* CARDS */
         .player-card {
-            background: #252f4e;
-            border-radius: 8px;
-            padding: 10px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            border: 3px solid transparent;
-            transition: 0.1s;
+            background: rgba(40, 50, 80, 0.6); border-radius: 8px; padding: 10px;
+            display: flex; align-items: center; gap: 12px; border: 3px solid transparent; transition: 0.1s;
         }
-        .player-card.clickable { cursor: pointer; }
-        .player-card.clickable:hover { background: #3a4b7c; border-color: rgba(255,255,255,0.3); }
-        .player-card.active { border-color: #2ecc71; background: #1e3a2a; }
-        .player-card.target { border-color: var(--highlight) !important; background: #5c1818 !important; }
-        .player-card.dead { opacity: 0.4; filter: grayscale(1); pointer-events: none; }
+        .player-card.clickable:hover { background: #3a4b7c; border-color: rgba(255,255,255,0.3); cursor: pointer; }
+        .player-card.active { border-color: #2ecc71; background: rgba(46, 204, 113, 0.1); }
+        .player-card.target { border-color: var(--highlight) !important; background: rgba(233, 69, 96, 0.2) !important; }
+        .player-card.dead { opacity: 0.4; filter: grayscale(1); }
+        .player-card.stunned { border-color: #a29bfe; opacity: 0.7; }
 
         .avatar { width: 50px; height: 50px; border-radius: 8px; background: #000; border: 2px solid #000; pointer-events: none; }
-        .hp-dot { width: 12px; height: 12px; background: #333; border-radius: 50%; border: 1px solid #000; display: inline-block; margin-right: 4px; }
+        .card-info { flex-grow: 1; pointer-events: none; }
+        
+        .hp-container { display: flex; gap: 5px; margin-top: 5px; }
+        .hp-dot { width: 12px; height: 12px; background: #333; border-radius: 50%; border: 1px solid #000; }
         .hp-dot.on { background: #2ecc71; box-shadow: 0 0 5px #2ecc71; }
 
+        .status-badge { font-size: 10px; padding: 2px 5px; border-radius: 4px; background: #a29bfe; color: #000; font-weight: bold; display: none; }
+        .stunned .status-badge { display: inline-block; }
+
         /* ARENA */
-        #arena {
-            flex-grow: 1;
-            position: relative;
-            background: radial-gradient(circle, #232342 0%, #1a1a2e 80%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
+        #arena { flex-grow: 1; position: relative; display: flex; justify-content: center; align-items: center; }
         
         #top-bar {
-            position: absolute;
-            top: 20px;
-            background: rgba(0,0,0,0.7);
-            padding: 10px 30px;
-            border-radius: 30px;
-            font-weight: bold;
-            border: 1px solid #555;
-            font-size: 1.2rem;
-            z-index: 10;
+            position: absolute; top: 20px;
+            background: rgba(0,0,0,0.8); padding: 10px 30px;
+            border-radius: 30px; font-weight: bold; border: 1px solid #555;
+            font-size: 1.2rem; z-index: 10;
         }
 
+        /* ROLL TEXT OVERLAY */
+        #roll-display {
+            position: absolute; top: 15%; width: 80%; text-align: center;
+            font-family: 'Anton', sans-serif; font-size: 48px; color: var(--accent);
+            text-shadow: 0 4px 10px #000; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 50;
+        }
+        #roll-display.visible { opacity: 1; }
+        .roll-sub { display: block; font-family: 'Roboto'; font-size: 18px; color: #fff; margin-top: 10px; font-weight: normal; }
+
         .arena-p {
-            position: absolute;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 120px;
-            transition: transform 0.5s;
-            z-index: 5;
-            margin-left: -60px;
-            margin-top: -60px;
+            position: absolute; display: flex; flex-direction: column; align-items: center;
+            width: 120px; transition: transform 0.5s; z-index: 5; margin-left: -60px; margin-top: -60px;
         }
         .arena-av {
-            width: 100px; height: 100px;
-            border-radius: 50%;
-            border: 4px solid #333;
-            background: #000;
-            transition: 0.2s;
-            pointer-events: none;
+            width: 100px; height: 100px; border-radius: 50%; border: 4px solid #333;
+            background: #000; transition: 0.2s; pointer-events: none; box-shadow: 0 10px 20px #000;
         }
         
-        .arena-p.clickable { cursor: pointer; }
-        .arena-p.clickable:hover .arena-av { transform: scale(1.1); border-color: #fff; }
+        .arena-p.clickable:hover .arena-av { transform: scale(1.1); border-color: #fff; cursor: pointer; }
         .arena-p.active .arena-av { border-color: #2ecc71; box-shadow: 0 0 25px #2ecc71; transform: scale(1.1); }
         .arena-p.target .arena-av { border-color: var(--highlight); box-shadow: 0 0 35px var(--highlight); animation: shake 0.5s infinite; }
         .arena-p.dead { opacity: 0; transition: opacity 1s; pointer-events: none; }
 
         .arena-name {
-            background: rgba(0,0,0,0.8);
-            padding: 4px 10px;
-            border-radius: 4px;
-            margin-top: 5px;
-            font-weight: bold;
-            pointer-events: none;
+            background: rgba(0,0,0,0.8); padding: 4px 10px; border-radius: 4px;
+            margin-top: 5px; font-weight: bold; pointer-events: none;
         }
 
         /* CONTROLS */
         #action-area { position: absolute; bottom: 40px; right: 40px; z-index: 50; }
         .btn-big {
-            width: 90px; height: 90px;
-            border-radius: 50%;
-            border: 4px solid #fff;
-            background: var(--highlight);
-            color: #fff;
-            font-size: 40px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 5px 20px #000;
-            transition: 0.2s;
+            width: 90px; height: 90px; border-radius: 50%; border: 4px solid #fff;
+            background: var(--highlight); color: #fff; font-size: 40px; font-weight: bold;
+            cursor: pointer; box-shadow: 0 5px 20px #000; transition: 0.2s;
         }
         .btn-big:hover { transform: scale(1.1); background: #ff6b81; }
         .btn-big:disabled { background: #555; border-color: #777; opacity: 0; pointer-events: none; }
 
         /* MODALS */
-        .modal-wrap {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95);
-            display: flex; justify-content: center; align-items: center;
-            z-index: 1000;
-        }
-        .modal {
-            background: #fff; color: #000; padding: 40px;
-            border-radius: 8px; width: 450px; text-align: center;
-            position: relative;
-        }
-        .modal h2 { margin-top: 0; }
+        .modal-wrap { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .modal { background: #fff; color: #000; padding: 40px; border-radius: 8px; width: 450px; text-align: center; position: relative; }
         .close-modal { position: absolute; top: 10px; right: 15px; cursor: pointer; font-size: 24px; font-weight: bold; }
-        
-        .rules-list { text-align: left; margin: 20px 0; line-height: 1.6; color: #333; }
-        .rules-list li { margin-bottom: 10px; }
-
         input { width: 100%; padding: 15px; margin: 10px 0; border: 2px solid #000; font-size: 1.2rem; text-align: center; font-weight: bold; text-transform: uppercase; }
         .btn-main { width: 100%; padding: 15px; background: #000; color: #fff; font-weight: bold; cursor: pointer; font-size: 1.2rem; margin-top: 10px; }
         .btn-main:hover { background: var(--highlight); }
@@ -221,7 +140,7 @@
         #console { position: absolute; bottom: 0; left: 0; width: 100%; height: 25px; background: #000; color: #0f0; font-family: monospace; font-size: 12px; padding: 4px; opacity: 0.6; pointer-events: none; z-index: 999; }
         
         @keyframes shake { 0% { transform: rotate(0deg); } 25% { transform: rotate(5deg); } 75% { transform: rotate(-5deg); } }
-        .floater { position: absolute; font-size: 40px; font-weight: 900; animation: float 2s forwards; pointer-events: none; text-shadow: 2px 2px #000; z-index: 100; }
+        .floater { position: absolute; font-size: 40px; font-weight: 900; animation: float 2s forwards; pointer-events: none; text-shadow: 2px 2px #000; z-index: 100; white-space: nowrap; }
         @keyframes float { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-80px); opacity: 0; } }
         
         .hidden { display: none !important; }
@@ -230,28 +149,28 @@
 <body>
 
     <div id="sidebar">
-        <div class="logo">STRADDLE<br>ROYALE V4</div>
+        <div class="logo">STRADDLE<br>ROYALE V5</div>
         
         <div class="code-box" onclick="copyRoomCode()">
-            <div class="code-label">ROOM CODE (CLICK TO COPY)</div>
+            <div style="color:#888; font-size:12px;">ROOM CODE (CLICK TO COPY)</div>
             <div class="code-val" id="room-disp">----</div>
             <div class="copy-hint" id="copy-msg"></div>
         </div>
 
         <div id="player-list"></div>
-        
-        <button class="btn-help" onclick="toggleHelp()">❓ HOW TO PLAY</button>
+        <button class="btn-main" style="background:transparent; border:1px solid #555; color:#aaa; margin-top:auto" onclick="toggleHelp()">RULES</button>
     </div>
 
     <div id="arena">
         <div id="top-bar">INITIALIZING...</div>
+        <div id="roll-display"></div>
         <div id="arena-layer"></div>
         <div id="action-area">
             <button id="btn-act" class="btn-big" disabled onclick="confirmAction()">✓</button>
         </div>
     </div>
 
-    <div id="console">System Ready. V4 Stable.</div>
+    <div id="console">System Ready. D100 Logic Loaded.</div>
 
     <!-- SETUP -->
     <div id="setup" class="modal-wrap">
@@ -273,26 +192,30 @@
         </div>
     </div>
 
-    <!-- HELP MODAL -->
-    <div id="help-modal" class="modal-wrap hidden">
+    <div id="help" class="modal-wrap hidden">
         <div class="modal">
             <div class="close-modal" onclick="toggleHelp()">×</div>
-            <h2>HOW TO PLAY</h2>
-            <ul class="rules-list">
-                <li><strong>1. Lobby:</strong> The Host waits for players to join, then clicks <strong>Start</strong>.</li>
-                <li><strong>2. Turns:</strong> Players take turns. The current turn is highlighted in <strong>Green</strong>.</li>
-                <li><strong>3. Attack:</strong> Click an opponent's card or avatar to target them (Red Ring).</li>
-                <li><strong>4. Confirm:</strong> Click the big <strong>Check Button</strong> to fire.</li>
-                <li><strong>5. Dice:</strong> The game rolls a D20 for Attack vs Defense. High roll wins.</li>
-                <li><strong>6. Win:</strong> Last warrior standing wins the Straddle Royale!</li>
-            </ul>
+            <h2>RULES OF ENGAGEMENT</h2>
+            <div style="text-align:left; line-height:1.5; max-height:300px; overflow-y:auto; font-size:14px;">
+                <p><strong>1-40 (Positive):</strong> Target loses 1 Point.</p>
+                <p><strong>41-70 (Backfire):</strong> You lose 1 Point.</p>
+                <p><strong>71-80 (No Effect):</strong> Nothing happens.</p>
+                <p><strong>81-85 (Enhanced):</strong> Target loses 2 Points.</p>
+                <p><strong>86-90 (Enhanced Self):</strong> You lose 2 Points.</p>
+                <p><strong>91-95 (Mutual):</strong> BOTH lose 2 Points.</p>
+                <p><strong>96 (Stun Target):</strong> Target -1 Point + Skips Turn.</p>
+                <p><strong>97 (Stun Self):</strong> You -1 Point + Skip Turn.</p>
+                <p><strong>98 (Drain):</strong> You HEAL 1 Point.</p>
+                <p><strong>99 (Steal):</strong> Target -1 Point, You +1 Point.</p>
+                <p><strong>100 (Adrenaline):</strong> Target -1 Point, YOU GO AGAIN!</p>
+            </div>
             <button class="btn-main" onclick="toggleHelp()">GOT IT</button>
         </div>
     </div>
 
     <script>
         const BROKER = 'wss://broker.emqx.io:8084/mqtt';
-        const TOPIC_ROOT = 'straddle-v4-final/';
+        const TOPIC_ROOT = 'straddle-v5-advanced/';
 
         let client;
         let myId = Math.random().toString(36).substr(2, 8);
@@ -312,13 +235,13 @@
 
         function log(t) { document.getElementById('console').innerText = `> ${t}`; console.log(t); }
         function showJoin() { document.getElementById('setup').classList.add('hidden'); document.getElementById('join').classList.remove('hidden'); }
-        function toggleHelp() { document.getElementById('help-modal').classList.toggle('hidden'); }
+        function toggleHelp() { document.getElementById('help').classList.toggle('hidden'); }
 
         function copyRoomCode() {
             if (!roomCode || roomCode === "----") return;
             navigator.clipboard.writeText(roomCode).then(() => {
                 const msg = document.getElementById('copy-msg');
-                msg.innerText = "COPIED TO CLIPBOARD!";
+                msg.innerText = "COPIED!";
                 setTimeout(() => msg.innerText = "", 2000);
             });
         }
@@ -330,7 +253,7 @@
             if (mode === 'HOST') {
                 isHost = true;
                 roomCode = Math.random().toString(36).substr(2, 4).toUpperCase();
-                players = [{id: myId, name: myName, avatar: myAvatar, hp: 3, dead: false}];
+                players = [{id: myId, name: myName, avatar: myAvatar, hp: 3, maxHp: 3, dead: false, stunned: false}];
             } else {
                 roomCode = document.getElementById('join-code').value.trim().toUpperCase();
                 if (roomCode.length < 4) return alert("Invalid Code");
@@ -384,7 +307,7 @@
             if (isHost) {
                 if (d.type === 'JOIN') {
                     if (!players.find(p => p.id === d.id)) {
-                        players.push({ id: d.id, name: d.name, avatar: d.avatar, hp: 3, dead: false });
+                        players.push({ id: d.id, name: d.name, avatar: d.avatar, hp: 3, maxHp: 3, dead: false, stunned: false });
                         log(`${d.name} Joined`);
                         sendState();
                     }
@@ -402,8 +325,6 @@
                     if (turnIndex !== d.turnIndex) targetedId = null;
                     turnIndex = d.turnIndex;
                     phase = d.phase;
-                    
-                    // Sync visual target only if we aren't the one setting it locally
                     if (players[turnIndex] && players[turnIndex].id !== myId) {
                         targetedId = d.targetedId;
                     }
@@ -411,6 +332,7 @@
                 }
                 else if (d.type === 'FX') {
                     showFloat(d.targetId, d.text, d.color);
+                    showBigMsg(d.title, d.sub);
                 }
             }
         }
@@ -420,7 +342,137 @@
             render();
         }
 
-        // --- ACTION LOGIC ---
+        // --- [1] D100 LOGIC TABLE ---
+        function getOutcome(roll, attName, defName) {
+            const r = { dmgDef: 0, dmgAtt: 0, healAtt: 0, stunDef: false, stunAtt: false, extraTurn: false, title: "", sub: "" };
+            
+            const subReplace = (text) => text.replace(/\$1/g, defName).replace(/{user}/g, attName);
+
+            if (roll <= 40) {
+                r.title = "POSITIVE HIT";
+                r.sub = subReplace("$1 loses a point!");
+                r.dmgDef = 1;
+            } 
+            else if (roll <= 70) {
+                r.title = "BACKFIRE";
+                r.sub = subReplace("{user} loses a point!");
+                r.dmgAtt = 1;
+            }
+            else if (roll <= 80) {
+                r.title = "NO EFFECT";
+                r.sub = "Nothing happens!";
+            }
+            else if (roll <= 85) {
+                r.title = "ENHANCED HIT";
+                r.sub = subReplace("$1 loses TWO points!");
+                r.dmgDef = 2;
+            }
+            else if (roll <= 90) {
+                r.title = "ENHANCED BACKFIRE";
+                r.sub = subReplace("{user} loses TWO points!");
+                r.dmgAtt = 2;
+            }
+            else if (roll <= 95) {
+                r.title = "MUTUAL DESTRUCTION";
+                r.sub = "BOTH lose TWO points!";
+                r.dmgDef = 2; r.dmgAtt = 2;
+            }
+            else if (roll === 96) {
+                r.title = "EXTREME: STUN";
+                r.sub = subReplace("$1 loses 1 point & turn!");
+                r.dmgDef = 1; r.stunDef = true;
+            }
+            else if (roll === 97) {
+                r.title = "EXTREME: SELF STUN";
+                r.sub = subReplace("{user} loses 1 point & turn!");
+                r.dmgAtt = 1; r.stunAtt = true;
+            }
+            else if (roll === 98) {
+                r.title = "EXTREME: DRAIN";
+                r.sub = subReplace("{user} GAINS a point!");
+                r.healAtt = 1;
+            }
+            else if (roll === 99) {
+                r.title = "EXTREME: STEAL";
+                r.sub = "Stole HP from target!";
+                r.dmgDef = 1; r.healAtt = 1;
+            }
+            else if (roll === 100) {
+                r.title = "ADRENALINE";
+                r.sub = "HIT + GO AGAIN!";
+                r.dmgDef = 1; r.extraTurn = true;
+            }
+            
+            return r;
+        }
+
+        function resolveCombat(attId, defId) {
+            const att = players.find(p => p.id === attId);
+            const def = players.find(p => p.id === defId);
+            if (!att || !def) return;
+
+            phase = 'ROLLING';
+            targetedId = defId;
+            sendState();
+
+            const roll = Math.floor(Math.random() * 100) + 1;
+            const outcome = getOutcome(roll, att.name, def.name);
+
+            setTimeout(() => {
+                // Apply Logic
+                if (outcome.dmgDef) { def.hp -= outcome.dmgDef; if(def.hp < 0) def.hp = 0; }
+                if (outcome.dmgAtt) { att.hp -= outcome.dmgAtt; if(att.hp < 0) att.hp = 0; }
+                if (outcome.healAtt) { att.hp += outcome.healAtt; if(att.hp > 3) att.hp = 3; } // Max 3 HP
+                
+                if (def.hp === 0) def.dead = true;
+                if (att.hp === 0) att.dead = true;
+
+                if (outcome.stunDef) def.stunned = true;
+                if (outcome.stunAtt) att.stunned = true;
+
+                // Feedback
+                send({ type: 'FX', targetId: defId, text: outcome.title, color: '#e94560', title: `${roll}: ${outcome.title}`, sub: outcome.sub });
+                showFloat(defId, outcome.title, '#e94560');
+                showBigMsg(`${roll}: ${outcome.title}`, outcome.sub);
+
+            }, 1000);
+
+            setTimeout(() => {
+                targetedId = null;
+                const alive = players.filter(p => !p.dead);
+                if (alive.length <= 1) {
+                    phase = 'GAMEOVER';
+                    if(alive.length === 1) launchConfetti();
+                }
+                else {
+                    // Next Turn Logic
+                    if (!outcome.extraTurn) {
+                        let i = 0;
+                        do {
+                            turnIndex = (turnIndex + 1) % players.length;
+                            
+                            // Handle Stun removal
+                            const p = players[turnIndex];
+                            if (!p.dead && p.stunned) {
+                                p.stunned = false; // Remove stun
+                                // Skip this turn? Yes.
+                                // But we need to visually show they skipped.
+                                // For simplicity in V5, we just skip silently or loop again
+                                // To keep it simple: Loop again immediately
+                            } else {
+                                // Found valid player
+                            }
+                            i++;
+                        } while ((players[turnIndex].dead || players[turnIndex].stunned) && i < 20);
+                        
+                        // Clear stun if we skipped them
+                        players.forEach((p, idx) => { if(idx !== turnIndex && !p.dead) p.stunned = false; }); // Simple clearing
+                    }
+                    phase = 'IDLE';
+                }
+                sendState();
+            }, 4000);
+        }
 
         function clickPlayer(id) {
             if (phase !== 'IDLE') return;
@@ -432,10 +484,8 @@
             if (!t || t.dead) return;
 
             targetedId = id;
-            
             if (isHost) sendState();
             else send({ type: 'TARGET', targetId: id });
-            
             render();
         }
 
@@ -446,73 +496,38 @@
                 sendState();
                 return;
             }
-
-            if (phase === 'GAMEOVER') {
-                location.reload();
-                return;
-            }
-
+            if (phase === 'GAMEOVER') { location.reload(); return; }
             if (phase === 'IDLE' && targetedId) {
                 if (isHost) resolveCombat(myId, targetedId);
                 else send({ type: 'ATTACK', targetId: targetedId });
-                
                 phase = 'ROLLING'; 
                 render();
             }
         }
 
-        function resolveCombat(attId, defId) {
-            const current = players[turnIndex];
-            if (current.id !== attId) return;
-
-            phase = 'ROLLING';
-            targetedId = defId;
-            sendState();
-
-            const r1 = Math.floor(Math.random()*20)+1;
-            const r2 = Math.floor(Math.random()*20)+1;
-            let hit = r1 > r2;
-
-            setTimeout(() => {
-                if (hit) {
-                    const def = players.find(p => p.id === defId);
-                    if (def) {
-                        def.hp--;
-                        if (def.hp<=0) { def.hp=0; def.dead=true; }
-                    }
-                    send({ type: 'FX', targetId: defId, text: "HIT! -1", color: '#e94560' });
-                    showFloat(defId, "HIT! -1", '#e94560');
-                } else {
-                    send({ type: 'FX', targetId: defId, text: "BLOCKED", color: '#fff' });
-                    showFloat(defId, "BLOCKED", '#fff');
-                }
-            }, 1000);
-
-            setTimeout(() => {
-                targetedId = null;
-                const alive = players.filter(p => !p.dead);
-                if (alive.length === 1) {
-                    phase = 'GAMEOVER';
-                    launchConfetti(); // HOST CONFETTI
-                }
-                else {
-                    let i=0;
-                    do { turnIndex = (turnIndex+1)%players.length; i++; }
-                    while(players[turnIndex].dead && i<20);
-                    phase = 'IDLE';
-                }
-                sendState();
-            }, 3000);
-        }
-
         function launchConfetti() {
-            var duration = 3000;
-            var end = Date.now() + duration;
+            var end = Date.now() + 3000;
             (function frame() {
                 confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 } });
                 confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 } });
                 if (Date.now() < end) requestAnimationFrame(frame);
             }());
+        }
+
+        function showBigMsg(t, s) {
+            const el = document.getElementById('roll-display');
+            el.innerHTML = `<div>${t}</div><div class="roll-sub">${s}</div>`;
+            el.classList.add('visible');
+            setTimeout(() => el.classList.remove('visible'), 3500);
+        }
+
+        function showFloat(id, txt, col) {
+            const el = document.getElementById(`av-${id}`);
+            if(!el) return;
+            const f = document.createElement('div');
+            f.className = 'floater'; f.innerText=txt; f.style.color=col;
+            el.appendChild(f);
+            setTimeout(()=>f.remove(), 2000);
         }
 
         function render() {
@@ -543,15 +558,14 @@
                 btn.disabled = false;
                 btn.style.opacity = 1;
                 btn.onclick = () => location.reload();
-                // CLIENT CONFETTI TRIGGER (If rendering this phase for first time)
                 launchConfetti(); 
             } else if (phase === 'ROLLING') {
-                bar.innerText = "ROLLING DICE...";
+                bar.innerText = "ROLLING D100...";
                 btn.disabled = true;
                 btn.style.opacity = 0;
             } else {
                 if (isMyTurn) {
-                    bar.innerText = targetedId ? "CLICK CHECK TO FIRE" : "YOUR TURN - SELECT TARGET";
+                    bar.innerText = targetedId ? "CONFIRM ATTACK" : "YOUR TURN";
                     bar.style.color = targetedId ? "#f1c40f" : "#2ecc71";
                     btn.innerHTML = "✓";
                     btn.disabled = !targetedId;
@@ -572,14 +586,15 @@
 
                 let dots = '';
                 for(let h=0; h<3; h++) dots += `<span class="hp-dot ${h<p.hp?'on':''}"></span>`;
+                
                 const card = document.createElement('div');
-                card.className = `player-card ${p.dead?'dead':''}`;
+                card.className = `player-card ${p.dead?'dead':''} ${p.stunned?'stunned':''}`;
                 if(canClick) card.classList.add('clickable');
                 if(isTurn) card.classList.add('active');
                 if(isTarget) card.classList.add('target');
                 
                 card.onclick = () => clickPlayer(p.id);
-                card.innerHTML = `<img src="${p.avatar}" class="avatar"><div style="flex-grow:1"><div style="font-weight:bold">${p.name}</div><div>${dots}</div></div>`;
+                card.innerHTML = `<img src="${p.avatar}" class="avatar"><div class="card-info"><div style="font-weight:bold">${p.name} <span class="status-badge">STUNNED</span></div><div>${dots}</div></div>`;
                 list.appendChild(card);
 
                 if (!p.dead) {
@@ -603,15 +618,6 @@
                     arena.appendChild(el);
                 }
             });
-        }
-
-        function showFloat(id, txt, col) {
-            const el = document.getElementById(`av-${id}`);
-            if(!el) return;
-            const f = document.createElement('div');
-            f.className = 'floater'; f.innerText=txt; f.style.color=col;
-            el.appendChild(f);
-            setTimeout(()=>f.remove(), 2000);
         }
 
         window.addEventListener('resize', () => { lastRenderState=""; render(); });
