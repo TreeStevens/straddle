@@ -3,20 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Straddle Royale V8</title>
+    <title>Straddle Royale V9</title>
     
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Roboto:wght@400;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
     
     <style>
         :root {
-            --bg-overlay: rgba(0, 0, 0, 0.3);
+            --bg-overlay: rgba(0, 0, 0, 0.4);
             --panel-bg: rgba(15, 15, 20, 0.95);
             --highlight: #e94560;
             --accent: #f1c40f;
             --text-main: #ffffff;
             --green: #2ecc71;
+            /* New Comic Colors */
+            --comic-yellow: #fff9c4;
+            --comic-text: #000;
         }
 
         * { box-sizing: border-box; user-select: none; }
@@ -24,7 +27,6 @@
         body {
             margin: 0;
             height: 100vh;
-            /* FIXED IMAGE URL (Raw format) */
             background-image: url('https://raw.githubusercontent.com/TreeStevens/straddle/main/1764034175005.png'); 
             background-size: cover;
             background-position: center;
@@ -39,9 +41,9 @@
             background: var(--bg-overlay); z-index: -1;
         }
 
-        /* --- SIDEBAR --- */
+        /* --- SIDEBAR (Now Comic Strip Style) --- */
         #sidebar {
-            width: 350px;
+            width: 380px;
             background: var(--panel-bg);
             border-right: 2px solid #333;
             display: flex;
@@ -70,21 +72,65 @@
         .code-box:hover { border-color: var(--accent); }
         .code-val { font-family: 'Anton', sans-serif; font-size: 32px; color: var(--accent); letter-spacing: 2px; }
         
-        #player-list { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
-
-        #battle-log {
-            height: 150px; background: #000; border: 1px solid #333; border-radius: 4px;
-            padding: 10px; overflow-y: auto; font-family: monospace; font-size: 11px; color: #aaa;
-            display: flex; flex-direction: column-reverse;
+        #player-list { 
+            flex-shrink: 0; /* Don't shrink */
+            margin-bottom: 15px;
+            display: flex; flex-direction: column; gap: 5px;
         }
-        .log-entry { margin-bottom: 6px; border-bottom: 1px solid #222; padding-bottom: 4px; }
-        .log-crit { color: var(--accent); font-weight: bold; }
-        .log-hit { color: var(--green); }
-        .log-bad { color: var(--highlight); }
+
+        /* --- NEW COMIC LOG --- */
+        #battle-log {
+            flex-grow: 1;
+            background: #000;
+            border: 2px solid #333;
+            border-radius: 4px;
+            padding: 10px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column-reverse; /* Newest at bottom */
+            gap: 15px;
+        }
+
+        .comic-entry {
+            background: #1a1a2e;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 8px;
+            position: relative;
+        }
+
+        .comic-bubble {
+            background: #fff;
+            color: #000;
+            padding: 8px 12px;
+            border-radius: 12px;
+            border-bottom-left-radius: 2px;
+            font-family: 'Bangers', cursive;
+            font-size: 16px;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: inline-block;
+            position: relative;
+        }
+        
+        .narrator-box {
+            background: var(--comic-yellow);
+            color: #000;
+            border: 2px solid #000;
+            padding: 5px 8px;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 900;
+            font-size: 13px;
+            text-transform: uppercase;
+            box-shadow: 3px 3px 0 rgba(0,0,0,0.5);
+        }
+        .narrator-box.bad { background: #ffcccc; color: #900; }
+        .narrator-box.good { background: #ccffcc; color: #060; }
+        .narrator-box.crit { background: var(--accent); color: #000; border: 2px dashed #000; }
 
         /* CARDS */
         .player-card {
-            background: rgba(255, 255, 255, 0.05); border-radius: 6px; padding: 8px;
+            background: rgba(255, 255, 255, 0.05); border-radius: 6px; padding: 6px;
             display: flex; align-items: center; gap: 10px; border: 2px solid transparent; transition: 0.1s;
         }
         .player-card.clickable:hover { background: rgba(255, 255, 255, 0.15); cursor: pointer; border-color: #fff; }
@@ -93,11 +139,11 @@
         .player-card.dead { opacity: 0.4; filter: grayscale(1); }
         .player-card.stunned { border-color: #a29bfe; }
 
-        .avatar { width: 45px; height: 45px; border-radius: 6px; background: #000; border: 1px solid #555; pointer-events: none; object-fit: cover; }
-        .card-info { flex-grow: 1; pointer-events: none; }
-        .hp-dot { width: 10px; height: 10px; background: #222; border-radius: 50%; border: 1px solid #444; display: inline-block; margin-right: 3px;}
+        .avatar { width: 35px; height: 35px; border-radius: 4px; background: #000; border: 1px solid #555; pointer-events: none; object-fit: cover; }
+        .card-info { flex-grow: 1; pointer-events: none; font-size: 13px; }
+        .hp-dot { width: 8px; height: 8px; background: #222; border-radius: 50%; border: 1px solid #444; display: inline-block; margin-right: 2px;}
         .hp-dot.on { background: var(--green); box-shadow: 0 0 5px var(--green); border-color: var(--green); }
-        .status-badge { font-size: 9px; padding: 2px 4px; border-radius: 3px; background: #a29bfe; color: #000; font-weight: bold; margin-left: 5px; display: none; }
+        .status-badge { font-size: 9px; padding: 1px 3px; border-radius: 3px; background: #a29bfe; color: #000; font-weight: bold; margin-left: 5px; display: none; }
         .stunned .status-badge { display: inline-block; }
 
         /* ARENA */
@@ -109,42 +155,52 @@
             font-size: 1.2rem; z-index: 10;
         }
 
-        /* TEXT BUBBLES (For Attacks) */
+        /* COMIC BUBBLE (In Arena) */
         .bubble {
             position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%);
-            background: #fff; color: #000; padding: 10px 15px; border-radius: 15px;
-            font-family: 'Bangers', cursive; font-size: 18px; letter-spacing: 1px;
+            background: #fff; color: #000; padding: 12px 18px; border-radius: 20px;
+            font-family: 'Bangers', cursive; font-size: 22px; letter-spacing: 1px;
             white-space: nowrap; z-index: 100; pointer-events: none;
-            box-shadow: 3px 3px 0px #000; opacity: 0; transition: opacity 0.3s;
+            border: 2px solid #000;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.5); 
+            opacity: 0; transition: opacity 0.2s, transform 0.2s;
         }
         .bubble::after {
-            content: ''; position: absolute; bottom: -8px; left: 50%;
-            border-width: 8px 8px 0; border-style: solid; border-color: #fff transparent;
+            content: ''; position: absolute; bottom: -10px; left: 50%;
+            border-width: 10px 10px 0; border-style: solid; border-color: #000 transparent;
             transform: translateX(-50%);
         }
-        .bubble.show { opacity: 1; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        @keyframes popIn { 0% { transform: translateX(-50%) scale(0); } 100% { transform: translateX(-50%) scale(1); } }
-
-        /* EXPOSITION COMIC BOX (For Outcomes) */
-        #comic-panel {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8);
-            width: 80%; max-width: 700px;
-            background: #fff; border: 6px solid #000;
-            padding: 30px; text-align: center;
-            box-shadow: 15px 15px 0px rgba(0,0,0,0.7);
-            z-index: 200; opacity: 0; pointer-events: none;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        .bubble::before { /* Inner white triangle for border effect */
+            content: ''; position: absolute; bottom: -6px; left: 50%;
+            border-width: 8px 8px 0; border-style: solid; border-color: #fff transparent;
+            transform: translateX(-50%); z-index: 1;
         }
-        #comic-panel.visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        .bubble.show { opacity: 1; transform: translateX(-50%) scale(1); }
+
+        /* EXPOSITION COMIC BOX (Center) */
+        #comic-panel {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9);
+            width: 80%; max-width: 600px;
+            background: var(--comic-yellow); 
+            border: 4px solid #000;
+            padding: 25px; text-align: center;
+            box-shadow: 20px 20px 0px rgba(0,0,0,0.8);
+            z-index: 200; 
+            display: none; /* Physically hidden to prevent empty flash */
+            pointer-events: none;
+        }
+        #comic-panel.visible { display: block; animation: panelPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         
+        @keyframes panelPop { 0% { transform: translate(-50%, -50%) scale(0); } 100% { transform: translate(-50%, -50%) scale(1); } }
+
         .comic-title {
-            font-family: 'Bangers', cursive; font-size: 60px; color: #e94560;
-            margin: 0 0 10px 0; line-height: 1; letter-spacing: 2px;
+            font-family: 'Bangers', cursive; font-size: 64px; color: #e94560;
+            margin: 0 0 15px 0; line-height: 1; letter-spacing: 2px;
             text-shadow: 3px 3px 0px #000; -webkit-text-stroke: 1px black;
         }
         .comic-text {
-            font-family: 'Roboto', sans-serif; font-size: 24px; color: #000;
-            font-weight: 900; line-height: 1.4;
+            font-family: 'Roboto', sans-serif; font-size: 26px; color: #000;
+            font-weight: 900; line-height: 1.3;
         }
 
         .arena-p {
@@ -206,7 +262,7 @@
 <body>
 
     <div id="sidebar">
-        <div class="logo">STRADDLE<br>ROYALE V8</div>
+        <div class="logo">STRADDLE<br>ROYALE V9</div>
         <div class="code-box" onclick="copyRoomCode()">
             <div style="color:#888; font-size:12px;">ROOM CODE</div>
             <div class="code-val" id="room-disp">----</div>
@@ -214,14 +270,15 @@
         </div>
         <div id="player-list"></div>
         <div id="battle-log">
-            <div class="log-neut">Waiting for battle...</div>
+            <div style="color:#555; text-align:center;">Waiting for battle...</div>
         </div>
+        <button class="btn-main" style="background:transparent; border:1px solid #555; color:#aaa; margin-top:10px; padding: 10px; font-size: 14px;" onclick="toggleHelp()">RULES</button>
     </div>
 
     <div id="arena">
         <div id="top-bar">INITIALIZING...</div>
         
-        <!-- EXPOSITION BOX -->
+        <!-- COMIC EXPOSITION BOX -->
         <div id="comic-panel">
             <div class="comic-title" id="comic-title">CRITICAL HIT!</div>
             <div class="comic-text" id="comic-body">...</div>
@@ -255,9 +312,27 @@
         </div>
     </div>
 
+    <div id="help" class="modal-wrap hidden">
+        <div class="modal">
+            <div class="close-modal" onclick="toggleHelp()">×</div>
+            <h2>RULES</h2>
+            <div style="text-align:left; font-size:13px; line-height:1.5;">
+                <p>1-40: Hit (-1)</p>
+                <p>41-70: Backfire (Self -1)</p>
+                <p>71-80: Miss</p>
+                <p>81-85: Crit (-2)</p>
+                <p>86-90: Bad Luck (Self -2)</p>
+                <p>91-95: Mutual (-2 Both)</p>
+                <p>96/97: Stun</p>
+                <p>98-100: Special</p>
+            </div>
+            <button class="btn-main" onclick="toggleHelp()">GOT IT</button>
+        </div>
+    </div>
+
     <script>
         const BROKER = 'wss://broker.emqx.io:8084/mqtt';
-        const TOPIC_ROOT = 'straddle-v8-comic/';
+        const TOPIC_ROOT = 'straddle-v9-final/';
 
         // --- FLAVOR TEXT DB ---
         const FLAVOR_TEXTS = {
@@ -301,13 +376,32 @@
         let retryTimer;
 
         function showJoin() { document.getElementById('setup').classList.add('hidden'); document.getElementById('join').classList.remove('hidden'); }
+        function toggleHelp() { document.getElementById('help').classList.toggle('hidden'); }
 
-        function addLog(msg, type) {
+        // --- NEW COMIC LOGIC ---
+        function addLog(actorName, bubbleText, outcomeText, type) {
             const box = document.getElementById('battle-log');
-            const div = document.createElement('div');
-            div.className = 'log-entry ' + (type || 'log-neut');
-            div.innerHTML = msg;
-            box.prepend(div);
+            const entry = document.createElement('div');
+            entry.className = 'comic-entry';
+            
+            // Comic Bubble Part
+            let html = `
+                <div>
+                    <div class="comic-bubble">${actorName}: ${bubbleText}</div>
+                </div>
+            `;
+            
+            // Narrator Box Part
+            if(outcomeText) {
+                let colorClass = 'narrator-box';
+                if(type === 'log-bad') colorClass += ' bad';
+                if(type === 'log-good') colorClass += ' good';
+                if(type === 'log-crit') colorClass += ' crit';
+                html += `<div class="${colorClass}">${outcomeText}</div>`;
+            }
+
+            entry.innerHTML = html;
+            box.prepend(entry);
         }
 
         function copyRoomCode() {
@@ -373,7 +467,7 @@
                 if (d.type === 'JOIN') {
                     if (!players.find(p => p.id === d.id)) {
                         players.push({ id: d.id, name: d.name, avatar: d.avatar, hp: 3, maxHp: 3, dead: false, stunned: false });
-                        addLog(`${d.name} entered.`, 'log-neut');
+                        addLog("NARRATOR", "New Challenger!", `${d.name} entered the arena.`);
                         sendState();
                     }
                 } 
@@ -396,8 +490,8 @@
                 else if (d.type === 'FX') {
                     showFloat(d.targetId, d.text, d.color);
                     showComic(d.title, d.sub); // Show Exposition
-                    addLog(d.logMsg, d.logType);
-                    if(d.flavor && d.attId) showBubble(d.attId, d.flavor);
+                    addLog(d.attName, d.flavor, d.sub, d.logType); // Show Comic Strip
+                    if(d.flavor && d.attId) showBubble(d.attId, d.flavor, d.targetName);
                 }
             }
         }
@@ -412,7 +506,9 @@
             const r = { dmgDef: 0, dmgAtt: 0, healAtt: 0, stunDef: false, stunAtt: false, extraTurn: false, title: "", sub: "" };
             const rawText = getFlavorText(roll);
             const resText = rawText.replace(/\$1/g, defName).replace(/{user}/g, attName);
-            const flavorPrefix = flavor ? `${attName} ${flavor}... ` : "";
+            
+            // Clean up flavor text (ensure it has punctuation)
+            let f = flavor || "attacks";
             
             if (roll <= 40) { r.title = "HIT!"; r.dmgDef = 1; r.logType="log-hit"; } 
             else if (roll <= 70) { r.title = "BACKFIRE!"; r.dmgAtt = 1; r.logType="log-bad"; }
@@ -427,7 +523,7 @@
             else if (roll === 100) { r.title = "ADRENALINE!"; r.dmgDef = 1; r.extraTurn = true; r.logType="log-crit"; }
             
             r.sub = resText;
-            r.logMsg = `${flavorPrefix} ${resText} [Roll: ${roll}]`;
+            r.flavor = f; // Pass back cleaned flavor
             return r;
         }
 
@@ -444,10 +540,10 @@
             const outcome = getOutcome(roll, att.name, def.name, flavor);
 
             // Phase 1: Thought Bubble
-            send({ type: 'FX', targetId: null, text: '', color: '', title: '', sub: '', logMsg: '', flavor: flavor, attId: attId });
-            showBubble(attId, flavor);
+            send({ type: 'FX', targetId: null, text: '', color: '', title: '', sub: '', flavor: outcome.flavor, attId: attId, targetName: def.name, attName: att.name });
+            showBubble(attId, outcome.flavor, def.name);
 
-            // Phase 2: Comic Box Result (Wait 2s for bubble)
+            // Phase 2: Comic Box Result
             setTimeout(() => {
                 if (outcome.dmgDef) { def.hp -= outcome.dmgDef; if(def.hp < 0) def.hp = 0; }
                 if (outcome.dmgAtt) { att.hp -= outcome.dmgAtt; if(att.hp < 0) att.hp = 0; }
@@ -464,22 +560,22 @@
                 send({ 
                     type: 'FX', targetId: defId, text: outcome.title, color: color, 
                     title: `${roll}: ${outcome.title}`, sub: outcome.sub,
-                    logMsg: outcome.logMsg, logType: outcome.logType 
+                    logType: outcome.logType, flavor: outcome.flavor, attName: att.name
                 });
                 
                 showFloat(defId, outcome.title, color);
                 showComic(outcome.title + ` (${roll})`, outcome.sub);
-                addLog(outcome.logMsg, outcome.logType);
+                addLog(att.name, outcome.flavor, outcome.sub, outcome.logType);
 
             }, 2000); 
 
-            // Phase 3: Next Turn (Wait 5s for reading time)
+            // Phase 3: Next Turn
             setTimeout(() => {
                 targetedId = null;
                 const alive = players.filter(p => !p.dead);
                 if (alive.length <= 1) {
                     phase = 'GAMEOVER';
-                    if(alive.length === 1) launchConfetti();
+                    if(alive.length === 1) launchWhiteLiquid(); // WHITE LIQUID VICTORY
                 }
                 else {
                     if (!outcome.extraTurn) {
@@ -489,7 +585,7 @@
                             const p = players[turnIndex];
                             if (!p.dead && p.stunned) { 
                                 p.stunned = false; 
-                                addLog(`${p.name} recovers from stun.`, 'log-neut');
+                                addLog(p.name, "is stunned!", "SKIP TURN", "log-neut");
                             } else { /* Valid */ }
                             i++;
                         } while ((players[turnIndex].dead || players[turnIndex].stunned) && i < 20);
@@ -499,7 +595,7 @@
                     phase = 'IDLE';
                 }
                 sendState();
-            }, 7000); // 2s (bubble) + 5s (reading) = 7s total
+            }, 7000); 
         }
 
         function clickPlayer(id) {
@@ -521,7 +617,7 @@
             if (isHost && phase === 'LOBBY') {
                 if (players.length < 2) return alert("Need 2 players");
                 phase = 'IDLE';
-                addLog("GAME STARTED", "log-crit");
+                addLog("NARRATOR", "Let the games begin!", "FIGHT!");
                 sendState();
                 return;
             }
@@ -538,11 +634,24 @@
             }
         }
 
-        function launchConfetti() {
+        // --- VISUALS ---
+        function launchWhiteLiquid() {
             var end = Date.now() + 3000;
+            // WHITE COLORS ONLY
+            var colors = ['#ffffff', '#eeeeee', '#f0f0f0'];
+
             (function frame() {
-                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 } });
-                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 } });
+                // Left Cannon
+                confetti({ 
+                    particleCount: 4, angle: 60, spread: 55, origin: { x: 0, y: 1 }, 
+                    colors: colors, gravity: 2, drift: 0, ticks: 300, startVelocity: 60, shapes: ['circle'] 
+                });
+                // Right Cannon
+                confetti({ 
+                    particleCount: 4, angle: 120, spread: 55, origin: { x: 1, y: 1 }, 
+                    colors: colors, gravity: 2, drift: 0, ticks: 300, startVelocity: 60, shapes: ['circle'] 
+                });
+
                 if (Date.now() < end) requestAnimationFrame(frame);
             }());
         }
@@ -564,11 +673,13 @@
             setTimeout(()=>f.remove(), 2000);
         }
 
-        function showBubble(id, text) {
+        function showBubble(id, text, targetName) {
             if(!text) return;
             const el = document.getElementById(`bubble-${id}`);
             if(!el) return;
-            el.innerText = text + "...";
+            // Append target name automatically
+            const fullText = text + " " + targetName + "...";
+            el.innerText = fullText;
             el.classList.add('show');
             setTimeout(() => el.classList.remove('show'), 2000);
         }
@@ -604,7 +715,7 @@
                 btn.disabled = false;
                 btn.style.opacity = 1;
                 btn.onclick = () => location.reload();
-                launchConfetti(); 
+                launchWhiteLiquid(); // Client Side
             } else if (phase === 'ROLLING') {
                 bar.innerText = "ROLLING...";
                 btn.disabled = true;
